@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Подземелье Аида: Побег</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://yandex.ru/games/sdk/v2"></script>
+</head><body>
+<div id="app">
+ <header><b id="floor">Этаж 1</b><span id="act">Тартар</span><button id="snd">🔊</button></header>
+ <section id="arena">
+  <div id="mname">Тень</div>
+  <div id="hpbar"><i id="hp"></i><em id="hptxt"></em></div>
+  <div id="timer"></div>
+  <div id="monster">👹</div>
+  <div id="fx"></div>
+  <div id="rage"><i id="rageb"></i></div>
+ </section>
+ <section id="stats"><span>⚔️ <b id="cd">0</b></span><span>⚡ <b id="dps">0</b>/с</span><span>💰 <b id="gold">0</b></span><span>🔮 <b id="souls">0</b></span></section>
+ <section id="skills"></section>
+ <section id="ads">
+  <button id="bHermes">📺 Буст Гермеса +100% (10 мин)</button>
+  <button id="bChest">📺 Сундук Харона</button>
+  <button id="bRetry" hidden>⚔️ Перейти к битве с боссом</button>
+  <button id="bSave" hidden>📺 Босс +15 сек</button>
+ </section>
+ <nav><button data-t="hero" class="on">⚔️ Герой</button><button data-t="gods">⚡ Боги</button><button data-t="inv">🎒 Вещи</button><button data-t="house">🏛️ Дом</button><button data-t="quest">📜 Квесты</button><button data-t="rew">🎁 Награды</button><button data-t="pres">🔮 Дары</button><button data-t="top">🏆</button></nav>
+ <main id="list"></main>
+ <div id="dev" hidden><div id="devq"></div><div id="devout"></div><div id="devrow"><input id="devin" placeholder="help" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="devrun">▶</button><button id="devx">×</button></div></div>
+ <div id="modal" hidden><div id="mbox"></div></div>
+</div>
+<script src="game.js"></script>
+</body></html>

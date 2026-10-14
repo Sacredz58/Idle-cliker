@@ -1,0 +1,7 @@
+{
+  "name": "hades-descent-clicker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Подземелье Аида: Побег — кликер для Яндекс Игр",
+  "scripts": { "test": "node tests/run.js" }
+}

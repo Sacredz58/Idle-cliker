@@ -1,0 +1,294 @@
+const vm=require('vm'),fs=require('fs'),path=require('path'),ROOT=path.join(__dirname,'..');
+let simNow=1.8e12;
+class D extends Date{constructor(...a){a.length?super(...a):super(simNow)}static now(){return simNow}}
+const els={};
+const El=id=>{const e={id,style:{},dataset:{},children:[],hidden:false,textContent:'',innerHTML:'',className:'',_h:{},classList:{add(){},remove(){},toggle(){}},appendChild(c){e.children.push(c)},addEventListener(t,f){e._h[t]=f},getBoundingClientRect:()=>({left:0,top:0}),offsetWidth:0};return e};
+let lsN=0,raf;const ls={};
+const ctx={document:{getElementById:i=>els[i]||(els[i]=El(i)),createElement:()=>El(),querySelectorAll:()=>[],_h:{},addEventListener(t,f){this._h[t]=f}},performance:{now:()=>0},requestAnimationFrame:f=>{raf=f},setInterval(){},setTimeout(){},localStorage:{getItem:k=>ls[k]||null,setItem:(k,v)=>{ls[k]=v;lsN++}},Date:D,console};
+ctx.window=ctx;vm.createContext(ctx);
+const run=c=>vm.runInContext(c,ctx);
+let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++};
+(async()=>{
+vm.runInContext(fs.readFileSync(ROOT+'/game.js','utf8'),ctx);
+await new Promise(r=>setImmediate(r));
+ok('init',run('S.floor')===1);
+let tsc=1000;const click=()=>els.arena._h.pointerdown({isTrusted:true,pointerType:'touch',clientX:5+Math.random()*3,clientY:5+Math.random()*3,timeStamp:(tsc+=110+Math.random()*120)});
+for(let i=0;i<25;i++)click();
+ok('click kills floor1',run('S.floor')>=2&&run('S.gold')>0);
+// inventory
+run('S.floor=10;spawn();dealt(1e30,false,0,0)');
+ok('boss drops item',run('S.inv.length')===1&&run('S.floor')===11);
+run("S.inv=[{s:0,r:0},{s:0,r:0},{s:0,r:0},{s:1,r:0}]");
+run('craft(0,0)');ok('craft 3->1',run('S.inv.filter(x=>x.s==0&&x.r==1).length')===1&&run('S.inv.length')===2);
+const c0=run('clickD()');run('equip(0,1)');ok('equip raises dmg',run('clickD()')>c0&&run('S.eq[0]')===1);
+run('equip(1,0)');run("S.inv.push({s:0,r:0});equip(0,0)");ok('swap returns old item',run('S.inv.some(x=>x.s==0&&x.r==1)'));
+// house
+run('S.max=100;S.gold=1e15');const cd=run('clickD()');run('build(0)');ok('build started, gold spent',run('S.b[0][1]')>0&&run("S.gold")<1e15);
+run('tab="house";tabRender()');ok('house renders',els.list.innerHTML.includes('Кузница'));
+simNow+=31e3;run('hTick()');ok('building done after 30s real time',run('S.b[0][0]')===1&&run('clickD()')>cd);
+// daily
+const g=run('S.gold');run('dClaim()');ok('daily claim',run('S.gold')>g&&run('S.day')===1);const g2=run('S.gold');run('dClaim()');ok('no double claim',run('S.gold')===g2);
+simNow+=864e5;run('dClaim()');ok('streak continues day2',run('S.day')===2);
+// quests
+run('qn();S.q.p=[0,2,4,6,7];S.q.k=250');const g3=run('S.gold');run('qClaim(0)');run('qClaim(0)');ok('quest claim once',run('S.gold')>g3&&run('S.q.d[0]')===1);
+run('tab="quest";tabRender()');ok('quest renders',els.list.innerHTML.includes('Убить 250'));
+// talents + prestige
+run('S.souls=10;S.tot=10;tab="pres";tabRender()');run('buyT(0)');ok('talent bought',run('S.t[0]')===1&&run('S.souls')===7);
+run('S.max=100;S.run=100;prestige()');ok('prestige keeps perm data',run('S.floor')===1&&run('S.souls')===32&&run('S.tot')===35&&run('S.t[0]')===1&&run('S.eq[0]')===0&&run('S.b[0][0]')===1);
+const s1=run('S.souls');ok('run reset after prestige',run('S.run')===1&&run('S.floor')===1);
+run('prestige()');ok('instant re-prestige gives nothing',run('S.souls')===s1);
+run('S.run=100;prestige()');ok('blocked by cooldown',run('S.souls')===s1&&run('pcd()')>0);
+simNow+=299e3;run('prestige()');ok('still blocked at 4:59',run('S.souls')===s1);
+simNow+=2e3;run('S.run=100;prestige()');ok('allowed after 5 min',run('S.souls')===s1+25&&run('S.run')===1);
+run('tab="pres";tabRender()');ok('cooldown text',run('cdTxt(299500)')==='5:00'&&run('cdTxt(61000)')==='1:01');
+run('S.gold=0;S.hermes=0;S.chest=0;draw()');
+ok('idle ad buttons',els.bHermes.textContent.includes('Буст Гермеса')&&!els.bHermes.disabled&&els.bChest.textContent.includes('Сундук Харона')&&!els.bChest.disabled);
+els.bHermes.onclick();ok('hermes shows timer 10:00 and disabled',els.bHermes.textContent.includes('10:00')&&els.bHermes.disabled===true);
+const d1=run('clickD()');ok('hermes active x2 dmg',run('S.hermes')>simNow);
+simNow+=60e3;run('draw()');ok('hermes timer counts down 9:00',els.bHermes.textContent.includes('9:00'));
+simNow+=541e3;run('draw()');ok('hermes ends, button restored',els.bHermes.textContent.includes('Буст Гермеса +100%')&&els.bHermes.disabled===false&&run('clickD()')<d1);
+els.bChest.onclick();ok('chest gives gold and starts cooldown',run('S.gold')>0&&run('S.chest')>simNow&&els.bChest.disabled===true&&els.bChest.textContent.includes('4:00:00'));
+simNow+=3600e3;run('draw()');ok('chest cooldown 3:00:00',els.bChest.textContent.includes('3:00:00'));
+const gc=run('S.gold');els.bChest.onclick();ok('chest blocked during cooldown',run('S.gold')===gc);
+simNow+=3*3600e3+1e3;run('draw()');ok('chest ready again',els.bChest.textContent.includes('Сундук Харона')&&els.bChest.disabled===false);
+ok('hms format',run("hms(90e3)")==='1:30'&&run("hms(3661e3)")==='1:01:01');
+run('S.inv=[{s:2,r:0},{s:1,r:3},{s:0,r:1},{s:3,r:3},{s:0,r:0},{s:1,r:3}];tab="inv";tabRender()');
+const seq=[...els.list.innerHTML.matchAll(/<b>([^<]*)<\/b> · ([^ ]*) ×(\d+)/g)].map(x=>x[1]+':'+x[2]+':'+x[3]).join('|');
+ok('inventory sorted by rarity desc, then slot',seq==='Доспех:Легендарный:2|Амулет:Легендарный:1|Шлем:Редкий:1|Шлем:Обычный:1|Оружие:Обычный:1');
+run('S=S0();BQ=5;S.gold=1e12');
+const sum5=run('[0,1,2,3,4].reduce((a,n)=>a+cost(WEAPONS[1][2],n),0)');
+ok('plan x5 = sum of 5 costs',Math.abs(run('plan(WEAPONS[1][2],0)[1]')-sum5)<1e-6*sum5&&run('plan(WEAPONS[1][2],0)[0]')===5);
+run('buy("w",1)');ok('buy x5 adds 5 levels, charges sum',run('S.w[1]')===5&&Math.abs((1e12-run('S.gold'))-sum5)<1e-3*sum5);
+run('BQ=100;S.gold=1e30;buy("g",0)');ok('x100 buys 100 levels',run('S.g[0]')===100);
+run('BQ=25;S.gold=0;buy("g",1)');ok('x25 blocked when poor',run('S.g[1]')===0);
+run('BQ=1;S.gold=1e6;buy("w",0)');ok('x1 same as before',run('S.w[0]')===2);
+run('BQ="max";S.gold=1e9;S.w=[1,...Array(16).fill(0)]');
+let lv=1,gg=1e9,bn=0;while(gg>=15*Math.pow(1.13,lv)){gg-=15*Math.pow(1.13,lv);lv++;bn++}
+ok('max count matches brute force',run('plan(WEAPONS[0][2],S.w[0])[0]')===bn);
+run('buy("w",0)');ok('max buys all affordable',run('S.w[0]')===1+bn&&run('S.gold')<run('cost(WEAPONS[0][2],S.w[0])'));
+run('S.gold=0');const gm=run('S.w[0]');run('buy("w",0)');ok('max with no gold buys nothing',run('S.w[0]')===gm&&run('plan(WEAPONS[0][2],S.w[0])[0]')===1);
+run('setQ("25");tab="gods";tabRender()');ok('selector rendered, setQ works',run('BQ')===25&&els.list.innerHTML.includes('МАКС')&&els.list.innerHTML.includes('x100'));
+run('setQ("max")');ok('setQ max',run('BQ')==='max');run('BQ=1');
+run('S=S0();S.floor=10;spawn();bossT=0.1');ok('boss fight active',run('inBoss')===true&&run('S.farm')===false);
+raf(250);
+ok('timeout -> previous floor, farm on, boss not active',run('S.floor')===9&&run('S.farm')===true&&run('inBoss')===false);
+ok('boss button shown',els.bRetry.hidden===false&&fs.readFileSync(ROOT+'/index.html','utf8').includes('Перейти к битве с боссом'));
+ok('farm timer text',els.timer.textContent.includes('10'));
+const gf=run('S.gold');for(let i=0;i<5;i++)run('dealt(1e30,false,0,0)');
+ok('killing monsters in farm stays on floor 9, no auto boss',run('S.floor')===9&&run('inBoss')===false&&run('S.farm')===true&&run('S.gold')>gf);
+ok('farm saved',JSON.parse(ls.hades).farm===true&&JSON.parse(ls.hades).floor===9);
+els.bRetry.onclick();ok('button starts boss fight',run('S.floor')===10&&run('S.farm')===false&&run('inBoss')===true&&els.bRetry.hidden===true&&Math.abs(run('bossT')-30)<1e-9);
+run('dealt(1e30,false,0,0)');ok('beating boss advances to 11',run('S.floor')===11&&run('S.farm')===false);
+run('S.floor=20;spawn();bossT=0.1');raf(500);els.bSave.onclick();ok('rescue video restarts boss with extra time',run('S.floor')===20&&run('inBoss')===true&&run('bossT')>40&&els.bRetry.hidden===true);
+raf(0);
+const pd=o=>els.arena._h.pointerdown(Object.assign({isTrusted:true,pointerType:'touch',clientX:50,clientY:50},o));
+const reset=()=>{run('S=S0();spawn();ck.last=0;ck.iv=[];ck.ts=[];ck.m=1;rage=0;clicks=[]');els.modal.hidden=true};
+{
+reset();const hp0=run('hp');pd({isTrusted:false,timeStamp:1});ok('synthetic (untrusted) click ignored',run('hp')===hp0);
+pd({pointerType:'mouse',button:2,timeStamp:5e6});ok('right mouse button ignored',run('hp')===hp0);
+reset();for(let i=0;i<25;i++)pd({timeStamp:5e6+i*40});ok('25 CPS clicking counted once per 100 ms window',run('S.q.c')===9);
+reset();for(let i=0;i<60;i++)pd({timeStamp:6e6+i*100});ok('10 CPS metronome: first 24 counted fully, then silently penalised, no popup',run('S.q.c')===24&&run('ck.m')===.25&&els.modal.hidden===true);
+reset();for(let i=0;i<1000;i++)pd({timeStamp:7e6+i});ok('1000 CPS autoclicker gets the same 10 CPS',run('S.q.c')===10);
+reset();let tt2=8e6;for(let i=0;i<40;i++)pd({timeStamp:(tt2+=40+Math.random()*20)});
+ok('fast human clicking: no popup, capped',els.modal.hidden===true&&run('S.q.c')>=12&&run('S.q.c')<=20);
+ok('verification popup removed',run('typeof verify')==='undefined');
+}
+run('S=S0();S.max=10');const hc=[0,1,2].map(i=>run(`hCost(${i})`));run('S.max=9000');
+ok('house cost independent of progress',[0,1,2].every(i=>run(`hCost(${i})`)===hc[i])&&hc[0]===2e3&&hc[1]===1e4&&hc[2]===5e4);
+run('S.b[0][0]=3');ok('house cost grows only with building level',run('hCost(0)')===2e3*216);
+run('S=S0();spawn();tab="house";tabRender()');els.list.innerHTML='MARK';run('dealt(1e30,false,0,0)');
+ok('house tab not re-rendered on each kill',els.list.innerHTML==='MARK');
+run('tab="inv";tabRender()');els.list.innerHTML='MARK';run('dealt(1e30,false,0,0)');
+run('hTick()');ok('inv tab refreshes after kill (deferred to next tick)',els.list.innerHTML!=='MARK');
+{const M=run('Math'),mr=M.random;
+reset();run('S.w[0]=1');run('useSk(0)');ok('locked skill does nothing',run('S.sc[0]')===0&&run('S.gold')===0);
+run('S.w[0]=10;draw()');ok('skill button unlocked, locked ones show lock',!els.skills.children[0].textContent.includes('🔒')&&els.skills.children[3].textContent.includes('🔒'));
+run('useSk(0)');ok('Styx strike hits and starts cooldown',run('S.gold')>0&&run('S.sc[0]')>simNow&&els.skills.children[0].disabled===true);
+const sc0=run('S.sc[0]');run('useSk(0)');ok('no use during cooldown',run('S.sc[0]')===sc0);
+simNow+=31e3;run('draw()');ok('skill ready after 30s',els.skills.children[0].disabled===false);
+reset();run('S.w[3]=10;S.floor=5;spawn()');const cd0=run('clickD()');run('useSk(3)');ok('Icarus x3 click dmg',Math.abs(run('clickD()')/cd0-3)<1e-9);
+simNow+=11e3;ok('Icarus buff expires',Math.abs(run('clickD()')/cd0-1)<1e-9);
+reset();run('S.w[1]=10;S.floor=5;spawn()');ok('no auto-dps before skill',run('dps()')===0);run('useSk(1)');ok('Athena throw adds autoclicks',run('dps()')>0);simNow+=9e3;ok('Athena throw ends',run('dps()')===0);
+reset();run('S.w[2]=10;S.floor=5;spawn()');run('useSk(2)');ok('Shield needs boss fight',run('S.sc[2]')===0);
+run('S.floor=10;spawn()');run('useSk(2)');ok('Shield +10s boss timer',Math.abs(run('bossT')-40)<1e-9);
+reset();run('S.g[0]=9');const p9=run('pt(0)');run('S.g[0]=10');const p10=run('pt(0)');run('S.g[0]=50');ok('passive tiers 0/1/2',p9===0&&p10===1&&run('pt(0)')===2);
+raf(0);reset();run('S.g[0]=10;S.floor=15;spawn();zt=7.9');raf(250);const dz=run('maxhp-hp');ok('Zeus lightning strikes after 8s',dz>=380&&dz<=440&&run('zt')===0);raf(0);
+const gk=()=>{run('S.floor=1;S.gold=0;spawn()');run('dealt(1e30,false,0,0)');return run('S.gold')};
+reset();const g0=gk();run('S.g[1]=10');ok('Poseidon +30% gold',Math.abs(gk()/g0-1.3)<1e-9);
+reset();const c1=run('clickD()');run('S.g[2]=10');ok('Ares +25% click',Math.abs(run('clickD()')/c1-1.25)<1e-9);
+reset();run('S.floor=5;S.g[3]=10;spawn()');ok('Aphrodite -10% monster hp',Math.abs(run('maxhp/mHP(5)')-.18)<1e-9);
+reset();run('S.floor=5;spawn()');M.random=()=>.2;let h0=run('hp');pd({timeStamp:2e7});const d0=h0-run('hp');
+reset();run('S.floor=5;S.g[4]=10;spawn()');h0=run('hp');pd({timeStamp:2e7+9e3});const d1=h0-run('hp');M.random=mr;
+ok('Apollo raises crit chance (0.2 roll crits only with passive)',Math.abs(d1/d0-3)<1e-6);
+reset();run('S.floor=5;S.g[5]=10;spawn();rage=0');for(let i=0;i<9;i++)pd({timeStamp:3e7+i*150});ok('Hermes passive: rage from 9 clicks',run('rage')>0);
+reset();run('S.floor=5;spawn();rage=0');for(let i=0;i<9;i++)pd({timeStamp:4e7+i*150});ok('no rage from 9 clicks without passive',run('rage')===0);run('rage=0');
+reset();run('S.g[6]=10;S.floor=10;spawn();dealt(1e30,false,0,0)');ok('Demeter: 2 items from boss',run('S.inv.length')===2);
+reset();run('S.g[7]=10;S.floor=10;spawn()');ok('Athena passive: boss timer 40',run('bossT')===40);
+run('tab="gods";tabRender()');ok('gods tab shows passives',els.list.innerHTML.includes('Пассив «Молния»'));
+run('tab="hero";tabRender()');ok('hero tab shows active skills',els.list.innerHTML.includes('Актив «Удар Стикса»'));
+}
+{const old=run('JSON.stringify(Object.assign(S0(),{g:[1,2,3,4,5,6,7,8],floor:7}))');ls.hades=old;await run('load()');
+ok('old 8-god save migrates to 12 gods',run('S.g.length')===18&&run('S.g[0]')===1&&run('S.g[7]')===8&&run('S.g[11]')===0&&run('S.floor')===7);
+run('tab="gods";tabRender()');ok('gods tab renders 12 gods incl. ones without passive',els.list.innerHTML.includes('Никта')&&els.list.innerHTML.includes('Пассив «Молния»'));}
+{const M=run('Math'),mr=M.random;
+ok('soul gain formula',[1,100,400,1000,10000].map(r=>run(`S.run=${r};soulGain()`)).join()==='0,25,160,700,52000');
+const co=[50,200,500,1000,3000,9000].map(r=>run(`S.run=${r};soulGain()/${r}`));ok('souls-per-floor coefficient keeps growing',co.every((x,i)=>i==0||x>co[i-1]));
+ok('extended content 17 weapons / 18 gods / 8 talents',run('WEAPONS.length')===17&&run('GODS.length')===18&&run('S0().w.length')===17&&run('S0().g.length')===18&&run('S0().t.length')===8);
+reset();run('S.souls=1e9;S.tot=0');for(let i=0;i<8;i++)run(`buyT(${i})`);ok('all 8 talents buyable',run('S.t.every(x=>x===1)'));
+run('S.t[4]=25');run('buyT(4)');ok('talent cap respected',run('S.t[4]')===25);run('tab="pres";tabRender()');ok('pres tab shows talents, cap and coefficient',els.list.innerHTML.includes('Глаз Аполлона')&&els.list.innerHTML.includes('МАКС')&&els.list.innerHTML.includes('коэф.'));
+const hit=(setup,rnd)=>{reset();run(setup);M.random=()=>rnd;const h=run('hp');pd({timeStamp:9e7});return h-run('hp')};
+const a1=hit('S.floor=5;spawn()',.05),a2=hit('S.floor=5;S.t[3]=5;spawn()',.05);ok('crit damage talent (x3 -> x4 at lvl5)',Math.abs(a2/a1-4/3)<1e-9);
+const b1=hit('S.floor=5;spawn()',.105),b2=hit('S.floor=5;S.t[4]=1;spawn()',.105);ok('crit chance talent +1%',Math.abs(b2/b1-3)<1e-9);M.random=mr;
+reset();run('S.t[5]=10;S.w[3]=10;S.floor=5;spawn();useSk(3)');ok('mastery doubles Icarus duration',Math.abs(run('S.se[3]')-simNow-20000)<1);
+reset();run('S.t[5]=10;S.w[2]=10;S.floor=10;spawn();useSk(2)');ok('mastery boosts Shield seconds',Math.abs(run('bossT')-50)<1e-9);
+reset();run('S.t[5]=10;S.w[0]=10;S.floor=15;spawn();useSk(0)');const hs=run('maxhp-hp');reset();run('S.w[0]=10;S.floor=15;spawn();useSk(0)');ok('mastery doubles Styx hit',Math.abs(hs/run('maxhp-hp')-2)<1e-6);
+reset();run('S.t[6]=10;S.w[0]=10;S.floor=15;spawn();useSk(0)');ok('Chronos echo: cooldown -30%',Math.abs(run('S.sc[0]')-simNow-21000)<1);
+reset();run('S.g[0]=10;S.t[7]=2;S.last=Date.now()-20*3600e3;S.gold=0;offline()');els.o1.onclick();ok('offline cap +1h from talent',Math.abs(run('S.gold')-40*9*3600*.05)<1);
+ls.hades=run('JSON.stringify(Object.assign(S0(),{w:[5,0,0,0,0,0,0,0,0,0,0],g:[1,2,3,4,5,6,7,8,9,10,11,12],t:[1,2,3],floor:9}))');await run('load()');
+ok('old save (11 weapons/12 gods/3 talents) migrates',run('S.w.length')===17&&run('S.w[0]')===5&&run('S.g.length')===18&&run('S.g[11]')===12&&run('S.t.length')===8&&run('S.t[2]')===3&&run('S.t[7]')===0);
+}
+{
+ok('quest pool >=12, 5 distinct per day',run('QD.length')>=12&&(()=>{for(let i=0;i<60;i++){run('S.q=null;qn()');if(run('S.q.p.length')!==5||run('new Set(S.q.p.map(i=>QD[i][1])).size')!==5)return false}return true})());
+run('S.q={t:Date.now(),k:5,c:1,b:0,d:[0,0,0]};qn()');ok('old 3-quest save migrates',run('S.q.p.length')===5&&run('S.q.d.length')===5);
+reset();run('S.gold=1e9;BQ=5;buy("w",0);BQ=1');ok('upgrade counter',run('S.q.u')===5);
+reset();run('S.w[0]=10;useSk(0)');ok('skill counter',run('S.q.s')===1);
+reset();run('S.floor=2;spawn()');for(let i=0;i<5;i++)run('dealt(1e30,false,0,0)');ok('new-floor + kill counters',run('S.q.f')===1&&run('S.q.k')===5);
+reset();run('S.floor=10;spawn();dealt(1e30,false,0,0)');ok('item + boss counters',run('S.q.i')===1&&run('S.q.b')===1);
+reset();run('S.gold=1e12;build(0)');ok('build counter',run('S.q.h')===1);
+reset();run('S.q=null');els.bHermes.onclick();ok('ad counter',run('S.q.a')===1);
+reset();run('S.floor=5;spawn()');for(let i=0;i<12;i++)pd({timeStamp:6e7+i*150});ok('rage counter',run('S.q.r')===1);
+reset();run('qn();S.q.p=[1,2,4,6,7];S.q.k=1000;S.max=1;S.gold=0');run('qClaim(0)');ok('quest reward scales with difficulty',Math.abs(run('S.gold')-run('mHP(10)*8'))<1e-6);
+reset();run('S.max=250;S.gold=0');const n1=simNow;run('openAc(0)');ok('ad reward: gold, cooldown exactly 10 min',run('S.gold')>0&&run('S.ac[0]')-n1===600000);
+const g1=run('S.gold');run('openAc(0)');ok('ad reward blocked during cooldown',run('S.gold')===g1);
+simNow+=601e3;run('openAc(0)');ok('ad reward available after 10 min',run('S.gold')>g1);
+reset();run('S.max=250;S.gold=0;S.souls=0;S.tot=0;S.inv=[]');const n2=simNow;
+run('openAc(1)');ok('bronze chest: gold, 1 item, 1h',run('S.gold')>0&&run('S.inv.length')===1&&run('S.ac[1]')-n2===36e5);
+run('openAc(2)');ok('silver chest: 2 items >= rare, 3h',run('S.inv.length')===3&&run('S.inv.slice(1).every(x=>x.r>=1)')&&run('S.ac[2]')-n2===108e5);
+run('openAc(3)');ok('gold chest: 3 items >= epic, souls, 8h',run('S.inv.length')===6&&run('S.inv.slice(3).every(x=>x.r>=2)')&&run('S.souls')===3&&run('S.tot')===3&&run('S.ac[3]')-n2===288e5);
+reset();run('S.ac=[1,2,3,4];S.run=100;S.max=100;prestige()');ok('chest cooldowns survive prestige',run('S.ac.join()')==='1,2,3,4');
+reset();run('S.max=250;tab="rew";tabRender()');const hh=els.list.innerHTML;ok('rewards tab lists ad reward + 3 chests',hh.includes('Награда за рекламу')&&hh.includes('Бронзовый сундук')&&hh.includes('Серебряный сундук')&&hh.includes('Золотой сундук')&&hh.includes('10:00'));
+run('openAc(0)');ok('after opening button shows cooldown',els.list.innerHTML.includes('⏳'));run('hTick()');
+const o2=JSON.parse(run('JSON.stringify(S0())'));delete o2.ac;ls.hades=JSON.stringify(o2);await run('load()');ok('old save without chests gets slots',run('S.ac.length')===4);
+}
+{
+reset();run('S.floor=3;spawn()');ok('non-boss monster has 1/5 of floor hp, shows 1/5',Math.abs(run('maxhp/mHP(3)')-.2)<1e-9&&els.floor.textContent.includes('1/5'));
+for(let i=0;i<4;i++)run('dealt(1e30,false,0,0)');ok('4 kills: still floor 3, counter 5/5, record not yet raised',run('S.floor')===3&&run('S.mk')===4&&els.floor.textContent.includes('5/5')&&run('S.max')===1);
+run('dealt(1e30,false,0,0)');ok('5th kill clears floor -> 4, counter reset, record raised',run('S.floor')===4&&run('S.mk')===0&&run('S.max')===3&&els.floor.textContent.includes('1/5'));
+ok('gold per floor unchanged (5 kills = 10% of floor hp)',Math.abs(run('S.gold')-run('mHP(3)*.1'))<1e-6);
+reset();run('S.floor=10;spawn()');ok('boss floor untouched: full hp, no counter',run('maxhp/mHP(10)')===1&&!els.floor.textContent.includes('/5'));
+run('dealt(1e30,false,0,0)');ok('boss dies in one kill -> floor 11',run('S.floor')===11&&run('S.mk')===0);
+reset();run('S.floor=9;S.farm=true;spawn()');for(let i=0;i<7;i++)run('dealt(1e30,false,0,0)');ok('farm mode: floor and counter untouched',run('S.floor')===9&&run('S.mk')===0);
+reset();run('S.inv=[];for(let i=0;i<10;i++)S.inv.push({s:0,r:0});S.eq[1]=0');run('craftAll()');
+ok('merge all: 10 common -> 1 common + 3 rare (4 rare needed for epic), equipped kept',run('S.inv.filter(x=>x.s==0&&x.r==0).length')===1&&run('S.inv.filter(x=>x.s==0&&x.r==1).length')===3&&run('S.inv.length')===4&&run('S.eq[1]')===0);
+reset();run('S.inv=[];for(let i=0;i<9;i++)S.inv.push({s:2,r:3});for(let i=0;i<2;i++)S.inv.push({s:3,r:1})');run('craftAll()');
+ok('merge all: 9 legendary -> 1 mythic + 3 left (6 needed), pairs untouched',run('S.inv.filter(x=>x.s==2&&x.r==4).length')===1&&run('S.inv.filter(x=>x.s==2&&x.r==3).length')===3&&run('S.inv.filter(x=>x.s==3&&x.r==1).length')===2&&run('S.inv.length')===6);
+ok('merge-all summary lists items by name',els.mbox.innerHTML.includes('Мифический ×1')&&els.mbox.innerHTML.includes('Оружие')&&els.mbox.innerHTML.includes('Синтезов: 1'));
+els.modal.hidden=true;run('craftAll()');ok('second merge-all is a no-op (no popup)',run('S.inv.length')===6&&els.modal.hidden===true);
+run('tab="inv";tabRender()');ok('merge-all button disabled when nothing to merge',/disabled onclick="craftAll\(\)"/.test(els.list.innerHTML));
+run('for(let i=0;i<3;i++)S.inv.push({s:1,r:0});tabRender()');ok('merge-all button enabled when 3 identical',!/disabled onclick="craftAll\(\)"/.test(els.list.innerHTML)&&els.list.innerHTML.includes('Объединить все'));
+reset();run('S.max=250;tab="quest";tabRender()');const qh=els.list.innerHTML;
+ok('daily login shows today\'s reward + 7-day strip',qh.includes('награда: 💰'+run('fmt(mHP(250)*5)'))&&qh.includes('class="days"')&&qh.includes('+5🔮')&&qh.includes('class="cur"'));
+run('dClaim()');const qh2=els.list.innerHTML;ok('after claiming: day 1 marked, tomorrow reward shown',qh2.includes('class="got"')&&qh2.includes('Завтра (день 2)')&&qh2.includes('≈💰'+run('fmt(mHP(250)*5*2)')));
+reset();run('S.max=250;S.inv=[]');run('openAc(1)');const bh=els.mbox.innerHTML;
+ok('bronze chest lists the actual item',(bh.match(/<br>/g)||[]).length===1&&run('SL.some(n=>'+JSON.stringify(bh)+'.includes(n))')&&run('RN.some(n=>'+JSON.stringify(bh)+'.includes(n))')&&!bh.includes('предметов'));
+run('openAc(3)');ok('gold chest lists 3 items with bonus %',(els.mbox.innerHTML.match(/<br>/g)||[]).length===3&&els.mbox.innerHTML.includes('🔮')&&els.mbox.innerHTML.includes('(+'));
+}
+{
+const mark=()=>{els.list.innerHTML='MARK'};
+reset();run('tab="hero";tabRender()');mark();for(let i=0;i<20;i++)run('dealt(1e30,false,0,0)');run('hTick()');
+ok('hero tab is not re-rendered by kills (buttons stay clickable)',els.list.innerHTML==='MARK');
+run('S.gold=1e9;buy("w",0)');ok('upgrade works while floors fly by',run('S.w[0]')>1);
+run('tab="gods";tabRender()');mark();for(let i=0;i<20;i++)run('dealt(1e30,false,0,0)');run('hTick()');ok('gods tab not re-rendered by kills',els.list.innerHTML==='MARK');
+run('tab="quest";tabRender()');mark();run('dealt(1e30,false,0,0)');ok('quest tab: not re-rendered inside kill',els.list.innerHTML==='MARK');
+run('hTick()');ok('quest tab refreshed on next tick',els.list.innerHTML!=='MARK');
+mark();els.list._h.pointerdown();run('dealt(1e30,false,0,0)');run('hTick()');ok('no re-render while pressed',els.list.innerHTML==='MARK');
+ctx.document._h.pointerup();run('hTick()');ok('no re-render right after release (click must land)',els.list.innerHTML==='MARK');
+simNow+=500;run('hTick()');ok('re-render after release + 400 ms',els.list.innerHTML!=='MARK');
+simNow+=4000;const l0=lsN;for(let i=0;i<20;i++)run('dealt(1e30,false,0,0)');ok('saving throttled: 20 kills -> 1 save',lsN-l0===1);
+simNow+=3100;run('dealt(1e30,false,0,0)');ok('next save after 3 s',lsN-l0===2);
+}
+{
+const cnt=(s,r)=>run(`S.inv.filter(x=>x.s==${s}&&x.r==${r}).length`);
+ok('8 rarity tiers, bonuses grow, merge costs 3..9',run('RN.length')===8&&run('RB.length')===8&&run('RB.every((b,i)=>i==0||b>RB[i-1])')&&run('NEED.join()')==='3,4,5,6,7,8,9');
+reset();run('S.inv=[];for(let i=0;i<12;i++)S.inv.push({s:0,r:0})');run('craftAll()');ok('merge-all cascades: 12 common -> 4 rare -> 1 epic',run('S.inv.length')===1&&cnt(0,2)===1);
+reset();run('S.inv=[];for(let i=0;i<5;i++)S.inv.push({s:0,r:3})');run('craft(0,3)');ok('5 legendary cannot make mythic (6 needed)',run('S.inv.length')===5&&cnt(0,4)===0);
+run('S.inv.push({s:0,r:3})');run('craft(0,3)');ok('6 legendary -> 1 mythic',run('S.inv.length')===1&&cnt(0,4)===1);
+reset();run('S.inv=[];for(let i=0;i<7;i++)S.inv.push({s:1,r:4})');run('craftAll()');ok('7 mythic -> 1 divine',run('S.inv.length')===1&&cnt(1,5)===1);
+reset();run('S.inv=[];for(let i=0;i<30;i++)S.inv.push({s:2,r:7})');run('craftAll();craft(2,7)');ok('top tier never merges',run('S.inv.length')===30);
+reset();run('S.eq=[5,-1,-1,-1,-1,-1]');ok('divine item bonus +900%',Math.abs(run('gearM()')-10)<1e-9);
+reset();run('S.inv=[];for(let i=0;i<6;i++)S.inv.push({s:0,r:3});tab="inv";tabRender()');ok('inventory button shows 6→1 for legendary',els.list.innerHTML.includes('6→1')&&!/disabled onclick="craft\(0,3\)"/.test(els.list.innerHTML));
+run('S.inv.pop();tabRender()');ok('button disabled with 5',/disabled onclick="craft\(0,3\)"/.test(els.list.innerHTML));
+const Mx=run('Math'),mrx=Mx.random;Mx.random=()=>0;
+const top=f=>{run(`S.floor=${f};S.inv=[];drop()`);return run('S.inv[0].r')};
+ok('natural drop cap by depth: 1 / 2 / 3 / 4',top(100)===1&&top(300)===2&&top(1000)===3&&top(2000)===4);
+Mx.random=mrx;
+}
+{
+const dx=c=>run('devExec('+JSON.stringify(c)+')');const key=k=>ctx.document._h.keydown({key:k,preventDefault(){},target:{}});
+ok('index.html has console markup (hidden by default)',/<div id="dev" hidden>/.test(fs.readFileSync(ROOT+'/index.html','utf8')));
+ctx.document.getElementById('dev');delete ls.devConsole;reset();els.dev.hidden=true;
+ok('console disabled by default',dx('gold 100')==='консоль отключена'&&run('S.gold')===0);
+key('`');ok('hotkey ignored when disabled',els.dev.hidden===true);
+ls.devConsole='1';key('`');ok('hotkey opens console when enabled',els.dev.hidden===false);
+key('`');ok('hotkey closes it',els.dev.hidden===true);
+for(let i=0;i<5;i++)els.act._h.click();ok('5 taps on floor title open console (mobile)',els.dev.hidden===false);run('devToggle()');
+ok('quick buttons built',els.devq.children.length===run('DQ.length'));
+reset();ok('gold adds and flags cheat',dx('gold 1e6').includes('золото')&&run('S.gold')===1e6&&run('S.cheat')===true);
+ok('bad number rejected',dx('gold abc')==='нужно число'&&run('S.gold')===1e6);
+dx('setgold 5');ok('setgold',run('S.gold')===5);
+dx('souls 50');ok('souls added to balance and total',run('S.souls')===50&&run('S.tot')===50);
+dx('floor 37');ok('floor jump',run('S.floor')===37&&run('S.mk')===0&&run('S.run')>=37);
+dx('max 500');ok('max',run('S.max')===500);
+dx('lvl w all 10');dx('lvl g 3 25');ok('lvl all / single',run('S.w.every(x=>x==10)')&&run('S.g[3]')===25&&run('S.g[0]')===0);
+ok('lvl bad index',dx('lvl g 99 1').includes('нет такого'));
+dx('talent all 5');ok('talent all',run('S.t[0]')===5&&run('S.t[4]')===5);dx('talent 4 99');ok('talent respects cap 25',run('S.t[4]')===25);
+run('S.inv=[]');dx('item 2 5 3');ok('item adds 3 divine',run('S.inv.length')===3&&run('S.inv.every(x=>x.s==2&&x.r==5)'));
+ok('item bad rarity',dx('item 2 9').startsWith('item')&&run('S.inv.length')===3);
+run('S.sc=[9e15,9e15,9e15,9e15];S.chest=9e15;S.ac=[9e15,9e15,9e15,9e15];S.pt=9e15');dx('cd');ok('cd resets every cooldown',run('S.sc.every(x=>x===0)&&S.chest===0&&S.ac.every(x=>x===0)&&S.pt===0'));
+dx('hermes 5');ok('hermes 5 min',Math.abs(run('S.hermes')-simNow-3e5)<1);
+reset();dx('floor 3');dx('kill 5');ok('kill 5 clears floor 3',run('S.floor')===4);
+dx('boss');ok('boss -> next boss floor 10',run('S.floor')===10&&run('inBoss')===true);dx('boss');ok('boss -> 20',run('S.floor')===20);
+reset();dx('floor 100');run('S.pt='+simNow);dx('prestige');ok('forced prestige ignores cooldown, keeps cheat flag',run('S.souls')===25&&run('S.floor')===1&&run('S.cheat')===true);
+reset();run('S.max=250');dx('quests');ok('quests all completed',run('S.q.p.every(qi=>S.q[QD[qi][1]]>=QD[qi][2])'));
+run('S.gold=0');run('qClaim(0)');ok('reward claimable after dev-complete',run('S.gold')>0);
+dx('day 5');ok('day 5 shown in quests',run('questH()').includes('День 5 из 7'));
+reset();run('S.b[0][1]=Date.now()+1e6');dx('build');ok('build finishes instantly',run('S.b[0][0]')===1&&run('S.b[0][1]')===0);
+reset();run('S.g[0]=10');els.modal.hidden=true;dx('offline 2');ok('offline sim opens reward popup',els.modal.hidden===false&&els.mbox.innerHTML.includes('Пока вас не было'));els.modal.hidden=true;
+raf(0);reset();dx('speed 4');run('S.floor=10;spawn()');raf(250);ok('speed x4 scales timers',Math.abs(run('bossT')-29)<1e-6&&run('TS')===4);
+dx('speed 0');ok('speed clamps to 0.1',run('TS')===.1);dx('speed 1');raf(0);
+reset();ok('get shows value',dx('get floor')==='floor = 1');dx('set gold 123');ok('set gold',run('S.gold')===123);
+ok('set unknown field',dx('set nope 1').includes('нет поля'));ok('bad json -> error text, no crash',dx('set gold {bad').startsWith('ошибка'));
+ok('state summary',dx('state').includes('этаж 1'));ok('unknown command',dx('foo').includes('неизвестная'));
+reset();dx('help');dx('state');dx('get floor');ok('read-only commands do not flag cheat',run('S.cheat')===false);
+dx('gold 99');ok('reset needs confirmation',dx('reset').includes('reset yes')&&run('S.gold')===99);dx('reset yes');ok('reset yes wipes progress and cheat flag',run('S.gold')===0&&run('S.cheat')===false);
+ctx.__lb=0;run('S=S0();ysdk={getLeaderboards:()=>{__lb++;return Promise.resolve({setLeaderboardScore:()=>Promise.resolve()})}}');run('submitScore()');ok('score sent normally',ctx.__lb===1);
+run('S.cheat=true;submitScore()');ok('score NOT sent after cheats',ctx.__lb===1);run('ysdk=null');
+delete ls.devConsole;els.dev.hidden=true;
+}
+{
+const Mm=run('Math'),mr3=Mm.random;Mm.random=()=>.99;let u=2e8;
+reset();for(let i=0;i<60;i++)pd({timeStamp:(u+=150)});
+ok('150 ms metronome: only first 24 clicks counted fully',run('S.q.c')===24&&run('ck.m')===.25&&els.modal.hidden===true);
+run('ck.ts=[];ck.last='+u+';ck.iv=Array(24).fill(150)');pd({timeStamp:(u+=150)});ok('still penalised right after',run('ck.m')===.25);
+for(let i=0;i<30;i++)pd({timeStamp:(u+=150+Math.random()*120)});ok('penalty lifts once clicking is irregular again',run('ck.m')===1);
+u+=1e6;reset();run('S.floor=5;spawn()');run('ck.last='+(u-150)+';ck.iv=Array(24).fill(150)');let hq=run('hp');pd({timeStamp:u});const dPen=hq-run('hp');
+u+=1e6;reset();run('S.floor=5;spawn()');run('ck.last='+(u-150)+';ck.iv=[130,170,150,210,140,180,160,120,200,150,190,135,175,145,205,125,185,155,195,140,170,160,130,180]');hq=run('hp');pd({timeStamp:u});const dNorm=hq-run('hp');
+ok('metronomic click deals 25% damage, irregular one 100%',dNorm>0&&Math.abs(dPen/dNorm-.25)<1e-9);
+u+=1e6;reset();for(let i=0;i<30;i++)pd({timeStamp:(u+=150)});ok('penalised clicks do not count for quests',run('S.q.c')===24);
+u+=1e6;reset();run('S.floor=5;spawn()');for(let i=0;i<24;i++)pd({timeStamp:(u+=150)});run('rage=0;clicks=[]');for(let i=0;i<14;i++)pd({timeStamp:(u+=150)});ok('penalised metronome clicks never trigger Olympus rage',run('rage')===0);
+u+=1e6;reset();for(let i=0;i<400;i++)pd({timeStamp:(u+=100+Math.random()*60)});
+ok('sustained limit: ~60 clicks per 10 s even with irregular 7.7 CPS',run('S.q.c')>=250&&run('S.q.c')<=335&&els.modal.hidden===true);
+Mm.random=mr3;
+}
+['hero','gods','inv','house','quest','rew','pres','top'].forEach(t=>{run(`tab="${t}";tabRender()`);ok('render '+t,els.list.innerHTML.length>20)});
+ok('hp finite at 10000',isFinite(run('mHP(10000)')));
+ok('old save migrates',(()=>{run('S=Object.assign(S0(),{floor:5,souls:4,tot:0});if(S.tot<S.souls)S.tot=S.souls');return run('S.tot')===4})());
+// balance sim
+raf(0);run('S=S0();spawn();ck.last=0;ck.iv=[];ck.ts=[];ck.m=1');let tt=0;
+const buyAll=()=>run(`for(let n=0;n<30;n++){let b=null;for(const k of ['w','g']){const A=k=='w'?WEAPONS:GODS,L=k=='w'?S.w:S.g;A.forEach((a,i)=>{const c=cost(a[2],L[i]);if(S.gold>=c&&(!b||c<b[2]))b=[k,i,c]})}if(!b)break;buy(b[0],b[1])}`);
+for(const mins of [5,15,30,60]){const steps=mins*60*20;const from=tt;
+ while(tt<mins*60*20){tt++;simNow+=50;raf(tt*50);if(tt%20==0){for(let i=0;i<6;i++)click();buyAll();if(run("S.farm")&&run("(dps()+clickD()*6)*28>=mHP(S.floor+1)"))els.bRetry.onclick()}}
+ console.log(`sim ${mins} мин: этаж ${run('S.floor')}, макс ${run('S.max')}, dps ${run('dps()').toExponential(1)}`)}
+ok('no NaN',!isNaN(run('S.gold'))&&isFinite(run('S.gold')));
+console.log(fails?'FAILS: '+fails:'ALL PASSED');if(fails)process.exit(1);
+})().catch(e=>{console.log('ERR',e);process.exit(1)});
