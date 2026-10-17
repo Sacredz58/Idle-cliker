@@ -32,6 +32,7 @@ simNow+=864e5;run('dClaim()');ok('streak continues day2',run('S.day')===2);
 // quests
 run('qn();S.q.p=[0,2,4,6,7,8,9,10];S.q.k=250');const g3=run('S.gold');run('qClaim(0)');run('qClaim(0)');ok('quest claim once',run('S.gold')>g3&&run('S.q.d[0]')===1);
 run('tab="quest";tabRender()');ok('quest renders',els.list.innerHTML.includes('Убить 250'));
+run('S.q.d=Array(8).fill(0);S.q.k=250;tabRender()');{const q1=els.list.innerHTML;ok('ready quest listed first with a claim button, quest icons by type',q1.indexOf('class="row up qr rdy"')<q1.indexOf('class="row up qr"')&&q1.includes('#i-skull'));}
 // talents + prestige
 run('S.souls=10;S.tot=10;tab="pres";tabRender()');run('buyT(0)');ok('talent bought',run('S.t[0]')===1&&run('S.souls')===7);
 run('S.max=100;S.run=100;prestige()');ok('prestige keeps perm data',run('S.floor')===29&&run('S.souls')===32&&run('S.tot')===35&&run('S.t[0]')===1&&run('S.eq[0]')===0&&run('S.b[0][0]')===1);
@@ -167,8 +168,8 @@ run('openAc(1)');ok('bronze chest: gold, 1 item, 1h',run('S.gold')>0&&run('S.inv
 run('openAc(2)');ok('silver chest: 2 items >= rare, 3h',run('S.inv.length')===3&&run('S.inv.slice(1).every(x=>x.r>=1)')&&run('S.ac[2]')-n2===108e5);
 run('openAc(3)');ok('gold chest: 3 items >= epic, souls, 8h',run('S.inv.length')===6&&run('S.inv.slice(3).every(x=>x.r>=2)')&&run('S.souls')===3&&run('S.tot')===3&&run('S.ac[3]')-n2===288e5);
 reset();run('S.ac=[1,2,3,4];S.run=100;S.max=100;prestige()');ok('chest cooldowns survive prestige',run('S.ac.join()')==='1,2,3,4');
-reset();run('S.max=250;tab="rew";tabRender()');const hh=els.list.innerHTML;ok('rewards tab lists ad reward + 3 chests',hh.includes('Награда за рекламу')&&hh.includes('Бронзовый сундук')&&hh.includes('Серебряный сундук')&&hh.includes('Золотой сундук')&&hh.includes('10:00'));
-run('openAc(0)');ok('after opening button shows cooldown',els.list.innerHTML.includes('⏳'));run('hTick()');
+reset();run('S.max=250;tab="rew";tabRender()');const hh=els.list.innerHTML;ok('rewards tab lists ad reward + 3 chests',hh.includes('Награда за видео')&&hh.includes('Бронзовый сундук')&&hh.includes('Серебряный сундук')&&hh.includes('Золотой сундук')&&hh.includes('10:00')&&hh.includes('class="it c1"')&&hh.includes('#i-chest')&&!/[📺🪵🥈🥇🍯]/u.test(hh));
+run('openAc(0)');ok('after opening button shows cooldown',els.list.innerHTML.includes('перезарядка</span>'));run('hTick()');
 const o2=JSON.parse(run('JSON.stringify(S0())'));delete o2.ac;ls.hades=JSON.stringify(o2);await run('load()');ok('old save without chests gets slots',run('S.ac.length')===4);
 }
 {
@@ -188,8 +189,8 @@ els.modal.hidden=true;run('craftAll()');ok('second merge-all is a no-op (no popu
 run('tab="inv";tabRender()');ok('merge-all button disabled when nothing to merge',/disabled onclick="craftAll\(\)"/.test(els.list.innerHTML));
 run('for(let i=0;i<3;i++)S.inv.push({s:1,r:0});tabRender()');ok('merge-all button enabled when 3 identical',!/disabled onclick="craftAll\(\)"/.test(els.list.innerHTML)&&els.list.innerHTML.includes('Объединить все'));
 reset();run('S.max=250;tab="quest";tabRender()');const qh=els.list.innerHTML;
-ok('daily login shows today\'s reward + 7-day strip',qh.includes('награда: 💰'+run('fmt(mHP(250)*5)'))&&qh.includes('class="days"')&&qh.includes('+5🔮')&&qh.includes('class="cur"'));
-run('dClaim()');const qh2=els.list.innerHTML;ok('after claiming: day 1 marked, tomorrow reward shown',qh2.includes('class="got"')&&qh2.includes('Завтра (день 2)')&&qh2.includes('≈💰'+run('fmt(mHP(250)*5*2)')));
+ok('daily login shows today\'s reward + 7-day strip',qh.includes('<i class="coin"></i>'+run('fmt(mHP(250)*5)')+'</span>')&&qh.includes('class="days"')&&qh.includes('<i class="soul"></i>5 <i class="nectar"></i>10')&&qh.includes('class="day cur"')&&(qh.match(/class="row up qr/g)||[]).length===8&&qh.includes('Все задания дня: 0/8'));
+run('dClaim()');const qh2=els.list.innerHTML;ok('after claiming: day 1 marked, tomorrow reward shown',qh2.includes('class="day got"')&&qh2.includes('Завтра (день 2)')&&qh2.includes('≈<i class="coin"></i>'+run('fmt(mHP(250)*5*2)')));
 reset();run('S.max=250;S.inv=[]');run('openAc(1)');const bh=els.mbox.innerHTML;
 ok('bronze chest lists the actual item',(bh.match(/<br>/g)||[]).length===1&&run('SL.some(n=>'+JSON.stringify(bh)+'.includes(n))')&&run('RN.some(n=>'+JSON.stringify(bh)+'.includes(n))')&&!bh.includes('предметов'));
 run('openAc(3)');ok('gold chest lists 3 items with bonus %',(els.mbox.innerHTML.match(/<br>/g)||[]).length===3&&els.mbox.innerHTML.includes('🔮')&&els.mbox.innerHTML.includes('(+'));
@@ -411,6 +412,12 @@ run('S.run=2000;S.pt=0;prestige()');ok('souls only for floors above the start (2
 reset();run('S.run=3;prestige()');ok('tiny run: soul gain 0, no prestige',run('S.souls')===0&&run('S.floor')===1);
 reset();run('S.run=10;S.pt=0');run('prestige()');ok('run of 10 floors gives souls and restarts at floor 3',run('S.floor')===3||run('S.floor')===1);
 reset();run('S.run=1234;tab="pres";tabRender()');ok('prestige tab announces the next start floor',els.list.innerHTML.includes('следующий старт с этажа '+run('startF()')));
+{const ph=els.list.innerHTML;ok('altar card: souls, gain, damage after rebirth, rebirth button',ph.includes('class="alt"')&&ph.includes('Урон станет')&&ph.includes('data-pb onclick="prestige()"')&&ph.includes('+'+run('fmt(soulGain())')+' душ'));
+ok('8 gifts with own icons and current effect',(ph.match(/class="row up tal/g)||[]).length===8&&ph.includes('#i-hourglass')&&ph.includes('#i-moon')&&ph.includes('Сейчас <em>'));}
+run('S.t[6]=10;tabRender()');ok('Chronos gift shows −30% now',els.list.innerHTML.includes('Сейчас <em>−30%</em>'));
+run('S.b=[[2,0],[0,Date.now()+20e3],[0,0]];tab="house";tabRender()');{const hh=els.list.innerHTML;
+ok('house: 3 building cards with icons, bonus now → next',(hh.match(/class="row hb h\d"/g)||[]).length===3&&hh.includes('#i-anvil')&&hh.includes('Сейчас <em>+20%</em> → +30%'));
+ok('house: building in progress shows bar, timer and finish-for-nectar button',hh.includes('data-fb=')&&hh.includes('data-ft=')&&hh.includes('buyShop(4)')&&hh.includes('Построить'));}
 ok('startF never lands on a boss floor',[1,9,10,33,34,100,1000,5000,9999,10000].every(r=>{run(`S.run=${r}`);const f=run('startF()');return f>=1&&f%10!==0||f===1}));
 // fairy gold from income, not from record floor
 reset();run('S.g[0]=10;S.max=10');run('fairySpawn()');Mp.random=()=>0;run('S.gold=0;fairyTap()');const fg1=run('S.gold');
@@ -528,7 +535,7 @@ run('S.st.c=999;achCheck()');ok('1000 clicks not yet',!run('S.achN.c1'));run('S.
 run('S.eq=[4,-1,-1,-1,-1,-1];achCheck()');ok('mythic equipped feat',run('S.achN.i1')===1);
 reset();run('S.st={};S.achN={};S.floor=10000;spawn();kill()');run('achCheck()');ok('final escape feat after Absolute Chaos',run('S.achN.f7')===1);els.modal.hidden=true;
 reset();els.toast.textContent='';run('S.achN={};S.ach={};S.st={k:5000,b:60};S.max=1200;achCheck(true)');ok('silent pass: unlocked without a toast',run('S.achN.k2')===1&&run('S.achN.b2')===1&&els.toast.textContent==='');
-run('tab="top";tabRender()');const th=els.list.innerHTML;ok('feats tab: counter, claim buttons, ready ones first',th.includes('Подвиги: 0 / 24')&&th.indexOf('achClaim')<th.indexOf('🔒'));
+run('tab="top";tabRender()');const th=els.list.innerHTML;ok('feats tab: counter, claim buttons, ready ones first',th.includes('Подвиги: 0 / 24')&&th.indexOf('class="row up fr rdy"')>=0&&th.indexOf('class="row up fr rdy"')<th.indexOf('class="row up fr lock"')&&th.includes('5.00K/25.0K'));
 ok('feats tab keeps the leaderboard row outside CrazyGames',th.includes('showLB()'));
 run('PF.kind="cg";tabRender()');ok('CG: feats tab without the leaderboard',!els.list.innerHTML.includes('showLB()')&&els.list.innerHTML.includes('achClaim'));run('PF.kind="local"');
 reset();run('S.st={};S.achN={};S.pc=0;S.run=100;S.max=100;S.pt=0;prestige();achCheck()');ok('prestige counter + first rebirth feat',run('S.pc')===1&&run('S.achN.p1')===1);
