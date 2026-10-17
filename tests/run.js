@@ -53,7 +53,7 @@ const gc=run('S.gold');els.bChest.onclick();ok('chest blocked during cooldown',r
 simNow+=3*3600e3+1e3;run('draw()');ok('chest ready again',els.bChest.textContent.includes('Сундук Харона')&&els.bChest.disabled===false);
 ok('hms format',run("hms(90e3)")==='1:30'&&run("hms(3661e3)")==='1:01:01');
 run('S.inv=[{s:2,r:0},{s:1,r:3},{s:0,r:1},{s:3,r:3},{s:0,r:0},{s:1,r:3}];tab="inv";tabRender()');
-const seq=[...els.list.innerHTML.matchAll(/<b>([^<]*)<\/b> · ([^ ]*) ×(\d+)/g)].map(x=>x[1]+':'+x[2]+':'+x[3]).join('|');
+const seq=[...els.list.innerHTML.matchAll(/<b>([^<]*)<\/b><span class="rn">([^<]*)<\/span><span class="cnt">×(\d+)<\/span>/g)].map(x=>x[1]+':'+x[2]+':'+x[3]).join('|');
 ok('inventory sorted by rarity desc, then slot',seq==='Доспех:Легендарный:2|Амулет:Легендарный:1|Шлем:Редкий:1|Шлем:Обычный:1|Оружие:Обычный:1');
 run('S=S0();BQ=5;S.gold=1e12');
 const sum5=run('[0,1,2,3,4].reduce((a,n)=>a+cost(WEAPONS[1][2],n),0)');
@@ -353,7 +353,12 @@ const Mt=run('Math'),mrt=Mt.random,dx2=c=>run('devExec('+JSON.stringify(c)+')');
 reset();run('S.floor=10;spawn();dealt(1e300,false,0,0)');let tapped=0;els.chest._h.pointerdown({stopPropagation(){tapped++}});
 ok('tap on the arena chest claims loot (does not count as an arena click)',tapped===1&&run('S.inv.length')===1&&run('S.loot.length')===0&&els.chest.hidden===true&&run('S.q.c')===0);
 ok('item bonus values raised for low rarities',run('RB.join()')==='0.3,0.7,1.4,2.2,4.5,9,20,45');
-reset();run('S.eq=[0,-1,-1,-1,-1,-1];tab="inv";tabRender()');ok('inventory shows total item bonus',els.list.innerHTML.includes('Бонус предметов')&&els.list.innerHTML.includes('×1.30'));
+reset();run('S.eq=[0,-1,-1,-1,-1,-1];tab="inv";tabRender()');{const ih=els.list.innerHTML;ok('inventory shows total item bonus',ih.includes('весь урон ×<em>1.30</em>'));
+ok('equipped slots: 6 tiles, worn one styled by rarity, empty ones marked',(ih.match(/class="slot/g)||[]).length===6&&(ih.match(/class="slot empty"/g)||[]).length===5&&ih.includes('class="it r0"')&&ih.includes('#i-helm'));}
+run('S.eq=[1,-1,-1,-1,-1,-1];S.inv=[{s:0,r:0},{s:0,r:2},{s:3,r:2},{s:3,r:2}];tabRender()');{const ih=els.list.innerHTML;
+ok('bag grouped by rarity with headers, tiles carry rarity class',(ih.match(/class="rh r/g)||[]).length===2&&ih.indexOf('class="rh r2"')<ih.indexOf('class="rh r0"')&&ih.includes('class="row itr r2"')&&ih.includes('#i-amulet'));
+ok('items better than the worn one are flagged, worse ones not',(ih.match(/лучше надетого/g)||[]).length===2&&ih.includes('синтез 2/5'));
+ok('rarity ladder shows merge costs',(ih.match(/class="gem r\d"/g)||[]).length===8);}
 // skills: unlock by record floor, souls upgrades
 reset();run('S.max=9');const a9=run('skLv(0)');run('S.max=10');const a10=run('skLv(0)');run('S.sl[0]=2');ok('skill levels: locked below floor 10, auto level 1 at 10, +souls levels',a9===0&&a10===1&&run('skLv(0)')===3&&Math.abs(run('pw(0)')-1.45)<1e-9);
 reset();run('S.souls=100;S.max=1;buySk(0)');ok('cannot upgrade a locked skill',run('S.sl[0]')===0&&run('S.souls')===100);

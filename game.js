@@ -182,7 +182,7 @@ async function init(){devInit();uiInit();$('list').addEventListener('pointerdown
  if(ysdk&&ysdk.features&&ysdk.features.LoadingAPI)ysdk.features.LoadingAPI.ready();if(PF.kind=='cg')try{PF.sdk.game.loadingStop()}catch(e){}gp(true);
  setInterval(save,15000);setInterval(musTick,400);setInterval(audVol,1000);requestAnimationFrame(loop)}
 
-let SL,RN;const SI=['🪖','🛡️','🗡️','📿','💍','🧥'],NEED=[3,4,5,6,7,8,9];
+let SL,RN;const NEED=[3,4,5,6,7,8,9];
 let BN;
 let TN;
 let QD;
@@ -247,7 +247,6 @@ let fnx=0;
 const skLv=i=>S.max>=SKU[i]?1+S.sl[i]:0,skCost=i=>Math.ceil(SKB[i]*Math.pow(1.55,S.sl[i]));
 function skH(){return SK.map((a,i)=>{const lv=skLv(i),ok=lv>0,c=skCost(i),mx=S.sl[i]>=SKMAX;return `<div class="row up${ok?'':' dim'}"><div class="ut">${ico(ok?SKI[i]:'lock')}</div><div class="ub"><div class="un"><b>${a[0]}</b><span class="lv">${t('ур.','lv.')} ${lv}</span></div><small>${a[5]}${ok?'':t(' · откроется на этаже ',' · unlocks at floor ')+SKU[i]}</small><small>${t('КД','CD')} ${a[3]} ${t('с','s')}${a[4]?t(' · длит. ',' · dur. ')+a[4]+t(' с',' s'):''} · ${t('сила','power')} ×${(1+.15*lv).toFixed(2)}</small></div><button ${!ok||mx||S.souls<c?'disabled':''} onclick="buySk(${i})">${mx?t('МАКС','MAX'):'<i class="soul"></i> '+c}</button></div>`}).join('')}
 function buySk(i){if(skLv(i)<1||S.sl[i]>=SKMAX||S.souls<skCost(i))return;S.souls-=skCost(i);S.sl[i]++;upd()}
-function gearH(){return '<div class="row"><div><b>'+t('Бонус предметов','Item bonus')+'</b><small>'+t('Весь урон ×','All damage ×')+gearM().toFixed(2)+t(' от надетых вещей',' from equipped items')+'</small></div></div>'}
 function toast(t){const e=$('toast');e.textContent=t;e.style.animation='none';void e.offsetWidth;e.style.animation=''}
 function fairySpawn(){const f=$('fairy');f.style.top=(15+Math.random()*55)+'%';f.hidden=false;f.style.animation='none';void f.offsetWidth;f.style.animation='';fnx=NOW()+(45+Math.random()*45)*1e3}
 function fairyTap(){const f=$('fairy');if(f.hidden)return;f.hidden=true;const r=Math.random();let tt;
@@ -276,7 +275,7 @@ function killFx(boss){const n=performance.now();if(n-kfxT<300&&!boss)return;kfxT
 function heroAtk(){const h=$('hero');h.classList.add('atk');setTimeout(()=>h.classList.remove('atk'),110)}
 function lootUI(){const c=$('chest'),n=S.loot.length;c.hidden=!n;if(n&&$('chestn').textContent!==String(n))$('chestn').textContent=String(n)}
 function claimLoot(){if(!S.loot.length)return;sfx('reward');const m={};S.loot.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});S.inv.push(...S.loot);S.loot=[];
- modal(`<h3>${t('Добыча с боссов','Boss loot')}</h3><p>${Object.keys(m).sort((a,b)=>b.split('_')[1]-a.split('_')[1]).map(k=>{const[s,r]=k.split('_').map(Number);return SI[s]+' '+SL[s]+' · '+RN[r]+' (+'+pct(RB[r])+'%)'+(m[k]>1?' ×'+m[k]:'')}).join('<br>')}</p>${okB()}`);upd()}
+ modal(`<h3>${t('Добыча с боссов','Boss loot')}</h3><p>${Object.keys(m).sort((a,b)=>b.split('_')[1]-a.split('_')[1]).map(k=>{const[s,r]=k.split('_').map(Number);return itm(s,r,1)+' '+SL[s]+' · '+RN[r]+' (+'+pct(RB[r])+'%)'+(m[k]>1?' ×'+m[k]:'')}).join('<br>')}</p>${okB()}`);upd()}
 function setVol(i,v){S.vol[i]=Math.min(1,Math.max(0,v/100));audVol();save()}
 function openCfg(){modal(`<h3>⚙️ ${t('Настройки','Settings')}</h3><p>${t('Эффекты','Effects')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[0]*100)}" oninput="setVol(0,this.value)"></p><p>${t('Музыка','Music')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[1]*100)}" oninput="setVol(1,this.value)"></p><p>${t('Язык','Language')}<br><button onclick="setLang('ru')">RU</button><button onclick="setLang('en')">EN</button></p>${okB()}`)}
 function uiInit(){['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,audUnlock,{passive:true}));$('tipx').addEventListener('pointerdown',e=>{e.stopPropagation();tipOff()});$('tip').addEventListener('pointerdown',e=>e.stopPropagation());$('monster').addEventListener('animationend',e=>{if(e.animationName=='pop')$('monster').classList.remove('pop')});$('chest').addEventListener('pointerdown',e=>{e.stopPropagation();claimLoot()});$('cfg').onclick=openCfg;$('fairy').addEventListener('pointerdown',e=>{e.stopPropagation();fairyTap()});$('fairy').addEventListener('animationend',()=>{$('fairy').hidden=true});fnx=NOW()+30e3;applyCos();
@@ -292,17 +291,32 @@ const qsH=()=>'<div class="qs"><span>'+t('Покупать','Buy')+'</span>'+[1,
 const upd=()=>{tabRender();draw();save()};
 const pcd=()=>Math.max(0,S.pt+3e5-NOW()),hms=r=>{const q=Math.ceil(r/1e3),h=Math.floor(q/3600);return (h?h+':':'')+String(Math.floor(q%3600/60)).padStart(h?2:1,'0')+':'+String(q%60).padStart(2,'0')},cdTxt=r=>{const q=Math.ceil(r/1e3);return Math.floor(q/60)+':'+String(q%60).padStart(2,'0')};
 function drop(mr=0,loot=false){const cap=S.floor<200?1:S.floor<600?2:S.floor<1500?3:S.floor<4000?4:S.floor<7000?5:6,p=.2+Math.min(.25,S.floor/2e4);let r=0;while(r<cap&&Math.random()<p)r++;const it={s:Math.floor(Math.random()*6),r:Math.max(r,mr)};(loot?S.loot:S.inv).push(it);if(S.loot.length>300)S.inv.push(S.loot.shift());qp('i');return it}
-function mergeH(){const m={};S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});const can=Object.keys(m).some(k=>{const r=+k.split('_')[1];return r<7&&m[k]>=NEED[r]});return `<div class="row"><div><b>${t('Объединить все','Merge all')}</b><small>${t('Синтез всех предметов в сумке: 3, 4, 5… одинаковых → 1 следующей редкости (надетые не трогаем)','Merges every item in the bag: 3, 4, 5… identical → 1 of the next rarity (equipped items stay)')}</small></div><button ${can?'':'disabled'} onclick="craftAll()">${t('Объединить','Merge')}</button></div>`}
+function mergeH(){const m={};S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});const can=Object.keys(m).some(k=>{const r=+k.split('_')[1];return r<7&&m[k]>=NEED[r]});
+ const lad='<div class="lad">'+RN.map((n,r)=>`<i class="gem r${r}" title="${n}"></i>`+(r<7?`<span>${NEED[r]}</span>`:'')).join('')+'</div>';
+ return `<div class="row mrg"><div><b>${t('Объединить все','Merge all')}</b><small>${t('Одинаковые вещи сливаются в одну следующей редкости (надетые не трогаем)','Identical items merge into one of the next rarity (equipped items stay)')}</small>${lad}</div><button ${can?'':'disabled'} onclick="craftAll()">${t('Объединить','Merge')}</button></div>`}
 function craftAll(){const cnt=()=>{const m={};S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});return m},b=cnt();let n=0;
  for(let r=0;r<7;r++)for(let s=0;s<6;s++){const k=Math.floor(S.inv.filter(x=>x.s==s&&x.r==r).length/NEED[r]);if(k){rm(s,r,NEED[r]*k);for(let j=0;j<k;j++)S.inv.push({s,r:r+1});n+=k}}
- if(!n)return;qp('m',n);const a=cnt(),l=Object.keys(a).filter(k=>a[k]>(b[k]||0)).map(k=>{const[s,r]=k.split('_').map(Number);return SI[s]+' '+SL[s]+' · '+RN[r]+' ×'+(a[k]-(b[k]||0))});
+ if(!n)return;qp('m',n);const a=cnt(),l=Object.keys(a).filter(k=>a[k]>(b[k]||0)).map(k=>{const[s,r]=k.split('_').map(Number);return itm(s,r,1)+' '+SL[s]+' · '+RN[r]+' ×'+(a[k]-(b[k]||0))});
  modal(`<h3>${t('Объединение','Merge')}</h3><p>${t('Синтезов','Merges')}: ${n}</p><p>${t('Получено','Received')}:<br>${l.join('<br>')}</p>${okB()}`);upd()}
 function rm(s,r,n){let c=0;S.inv=S.inv.filter(x=>!(x.s==s&&x.r==r&&c++<n))}
 function equip(s,r){rm(s,r,1);if(S.eq[s]>=0)S.inv.push({s,r:S.eq[s]});S.eq[s]=r;upd()}
 function craft(s,r){if(r>=7||S.inv.filter(x=>x.s==s&&x.r==r).length<NEED[r])return;rm(s,r,NEED[r]);S.inv.push({s,r:r+1});qp('m');upd()}
-function invH(){let h=gearH()+mergeH()+'<div class="row"><div><b>'+t('Надето','Equipped')+'</b>'+SL.map((n,i)=>`<small>${SI[i]} ${n}: ${S.eq[i]>=0?RN[S.eq[i]]+' +'+pct(RB[S.eq[i]])+'%':t('пусто','empty')}</small>`).join('')+'</div></div>',m={};
- S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});
- Object.keys(m).sort((a,b)=>{const[x,y]=a.split('_').map(Number),[u,v]=b.split('_').map(Number);return v-y||x-u}).forEach(k=>{const[s,r]=k.split('_').map(Number);h+=`<div class="row"><div>${SI[s]} <b>${SL[s]}</b> · ${RN[r]} ×${m[k]}<small>+${pct(RB[r])}% ${t('урона','damage')}</small></div><div><button onclick="equip(${s},${r})">${t('Надеть','Equip')}</button> <button ${m[k]<NEED[r]||r>=7?'disabled':''} onclick="craft(${s},${r})">${r>=7?t('МАКС','MAX'):NEED[r]+'→1'}</button></div></div>`});
+// ======== ВЕЩИ: иконка по слоту, рамка и свечение по редкости (классы r0…r7 в style.css) ========
+const SLI=['helm','armor','sword','amulet','ring','cloak'];
+// значок предмета: sm — маленький (в окнах наград), иначе плитка 44 px
+const itm=(s,r,sm)=>`<span class="it r${r}${sm?' sm':''}"><svg class="ico" aria-hidden="true"><use href="#i-${SLI[s]}"/></svg></span>`;
+function invH(){const m={},have={};S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});
+ let h=`<div class="eqc"><div class="eqh"><b>${t('Надето','Equipped')}</b><span>${t('весь урон ×','all damage ×')}<em>${gearM().toFixed(2)}</em></span></div><div class="eqg">`+
+  SL.map((n,i)=>{const r=S.eq[i];return r>=0?`<div class="slot">${itm(i,r)}<b>${n}</b><small class="rt r${r}">${RN[r]}</small><small>+${pct(RB[r])}%</small></div>`:
+   `<div class="slot empty"><span class="it none"><svg class="ico" aria-hidden="true"><use href="#i-${SLI[i]}"/></svg></span><b>${n}</b><small>${t('пусто','empty')}</small></div>`}).join('')+'</div></div>'+mergeH();
+ const keys=Object.keys(m).sort((a,b)=>{const[x,y]=a.split('_').map(Number),[u,v]=b.split('_').map(Number);return v-y||x-u});let cur=-1;
+ keys.forEach(k=>{const[s,r]=k.split('_').map(Number),n=m[k],need=NEED[r],top=r>=7,better=r>S.eq[s];
+  if(r!==cur){cur=r;const tot=keys.filter(q=>+q.split('_')[1]===r).reduce((a,q)=>a+m[q],0);
+   h+=`<div class="rh r${r}"><i class="gem"></i><b>${RN[r]}</b><span>+${pct(RB[r])}% ${t('за вещь','each')}</span><em>${tot} ${t('шт.','pcs')}</em></div>`}
+  h+=`<div class="row itr r${r}">${itm(s,r)}<div class="ub"><div class="un"><b>${SL[s]}</b><span class="rn">${RN[r]}</span><span class="cnt">×${n}</span>${better?`<span class="bt">${t('лучше надетого','upgrade')}</span>`:''}</div>`+
+   `<small>+${pct(RB[r])}% ${t('урона','damage')}${top?t(' · высшая редкость',' · top rarity'):` · ${t('синтез','merge')} ${Math.min(n,need)}/${need}`}</small>`+
+   (top?'':`<div class="m2"><span><i style="width:${Math.min(100,Math.round(n/need*100))}%"></i></span></div>`)+`</div>`+
+   `<div class="ia"><button class="${better?'pri':''}" onclick="equip(${s},${r})">${t('Надеть','Equip')}</button><button ${n<need||top?'disabled':''} onclick="craft(${s},${r})">${top?t('МАКС','MAX'):need+'→1'}</button></div></div>`});
  return h+(S.inv.length?'':'<div class="row"><small>'+t('Предметы выпадают с боссов (каждые 10 этажей).','Items drop from bosses (every 10 floors).')+'</small></div>')}
 const hCost=i=>[2e3,1e4,5e4][i]*Math.pow(6,S.b[i][0]),hTime=i=>30*Math.pow(2,S.b[i][0]);
 function build(i){const b=S.b[i],c=hCost(i);if(b[1]||S.gold<c)return;S.gold-=c;b[1]=NOW()+hTime(i)*1e3;qp('h');upd()}
@@ -313,7 +327,7 @@ function qpick(){const a=QD.map((_,i)=>i).sort(()=>Math.random()-.5),r=[],ks={};
 function qn(){if(!S.q||!S.q.p||S.q.p.length!=QN||NOW()-S.q.t>864e5)S.q={t:NOW(),k:0,c:0,b:0,u:0,s:0,r:0,i:0,a:0,h:0,f:0,x:0,o:0,m:0,bn:0,d:Array(QN).fill(0),p:qpick()}}
 function qp(k,n=1){qn();S.q[k]+=n;S.st[k]=(S.st[k]||0)+n}
 function qClaim(j){qn();const q=QD[S.q.p[j]];if(S.q.d[j]||S.q[q[1]]<q[2])return;S.q.d[j]=1;sfx('reward');S.gold+=mHP(Math.max(S.max,10))*q[3];S.nec++;if(S.q.d.every(x=>x)&&!S.q.bn){S.q.bn=1;S.nec+=5}upd()}
-function acGive(i){sfx('reward');const g=mHP(Math.max(S.max,10)),[gm,ni,mr,so]=[[4,0,0,0],[10,1,0,0],[30,2,1,0],[100,3,2,1]][i];S.gold+=g*gm;const its=[];for(let k=0;k<ni;k++)its.push(drop(mr));let t='💰'+fmt(g*gm);if(so){const x=1+Math.floor(S.max/100);S.souls+=x;S.tot+=x;t+=' · 🔮'+x}return t+its.map(it=>'<br>'+SI[it.s]+' '+SL[it.s]+' · '+RN[it.r]+' (+'+pct(RB[it.r])+'%)').join('')}
+function acGive(i){sfx('reward');const g=mHP(Math.max(S.max,10)),[gm,ni,mr,so]=[[4,0,0,0],[10,1,0,0],[30,2,1,0],[100,3,2,1]][i];S.gold+=g*gm;const its=[];for(let k=0;k<ni;k++)its.push(drop(mr));let t='💰'+fmt(g*gm);if(so){const x=1+Math.floor(S.max/100);S.souls+=x;S.tot+=x;t+=' · 🔮'+x}return t+its.map(it=>'<br>'+itm(it.s,it.r,1)+' '+SL[it.s]+' · '+RN[it.r]+' (+'+pct(RB[it.r])+'%)').join('')}
 function openAc(i){if(S.ac[i]>NOW())return;rewarded(()=>{qp('o');S.ac[i]=NOW()+AC[i][2];const tx=acGive(i);modal(`<h3>${AC[i][0]}</h3><p>${tx}</p>${okB()}`);upd()})}
 function rewH(){const n=NOW(),off=adsOff();let h='';
  if(off)h+=`<div class="row"><small>${adOffMsg()}. ${t('Награды можно получить за Нектар ниже.','You can still get rewards for Nectar below.')}</small></div>`;
