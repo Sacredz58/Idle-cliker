@@ -24,22 +24,22 @@ jobs:
           node-version: 20
       - name: Автотесты
         run: node tests/run.js
-      - name: Релизная сборка (консоль разработчика выключена)
-        run: |
-          mkdir dist
-          cp index.html style.css game.js dist/
-          sed -i 's/const DEV_ALLOWED=true/const DEV_ALLOWED=false/' dist/game.js
-          grep -q "const DEV_ALLOWED=false" dist/game.js
-          (cd dist && zip -r ../yandex-games.zip index.html style.css game.js)
+      - name: Релизные сборки для Яндекс Игр и CrazyGames (консоль разработчика выключена)
+        run: bash build.sh
       - name: Архив для Яндекс Игр
         uses: actions/upload-artifact@v4
         with:
           name: yandex-games
-          path: yandex-games.zip
+          path: build/yandex-games.zip
+      - name: Архив для CrazyGames
+        uses: actions/upload-artifact@v4
+        with:
+          name: crazygames
+          path: build/crazygames.zip
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: dist/yandex
 
   deploy:
     needs: build

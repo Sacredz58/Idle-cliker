@@ -3,29 +3,98 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Подземелье Аида: Побег</title>
 <link rel="stylesheet" href="style.css">
+<link rel="preload" as="image" href="img/hero.webp">
+<link rel="preload" as="image" href="img/act1_bg.webp">
+<link rel="preload" as="font" type="font/woff" href="fonts/golos.woff" crossorigin>
 <script src="https://yandex.ru/games/sdk/v2"></script>
 </head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-sword" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></symbol>
+ <symbol id="i-spear" viewBox="0 0 24 24"><path d="M3 21 15 9M13 5l7-2-2 7-3 1-3-3z"/></symbol>
+ <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+ <symbol id="i-bow" viewBox="0 0 24 24"><path d="M5 3c8 1 15 8 16 16M5 3l16 16M4 20 14 10M14 10h-4M14 10v4"/></symbol>
+ <symbol id="i-blades" viewBox="0 0 24 24"><path d="m5 3 14 14M19 3 5 17M3 15l4 4M21 15l-4 4"/></symbol>
+ <symbol id="i-axe" viewBox="0 0 24 24"><path d="M4 20 15 9M13 4a6 6 0 0 1 7 7l-3 1-5-5z"/></symbol>
+ <symbol id="i-trident" viewBox="0 0 24 24"><path d="M12 22V7M6 3v5a6 6 0 0 0 12 0V3M12 2v5"/></symbol>
+ <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></symbol>
+ <symbol id="i-scythe" viewBox="0 0 24 24"><path d="M6 21 15 5M15 5C11 2 6 2 3 5c4-1 8 0 11 3"/></symbol>
+ <symbol id="i-sickle" viewBox="0 0 24 24"><path d="M9 19c-5-4-5-11 0-14 3-2 7-2 9 0-4-1-8 2-8 6 0 3 1 5 3 6M9 19l-4 3"/></symbol>
+ <symbol id="i-thread" viewBox="0 0 24 24"><path d="M12 12a2 2 0 1 1 2-2 4 4 0 1 1-4-4 6 6 0 1 1-6 6M4 12v9"/></symbol>
+ <symbol id="i-sting" viewBox="0 0 24 24"><path d="M5 21c0-6 3-9 8-9 3 0 6-2 6-5V3M19 3l-3 3M19 3l3 3"/></symbol>
+ <symbol id="i-hammer" viewBox="0 0 24 24"><path d="M3 21l9-9M10 6l4-4 8 8-4 4z"/></symbol>
+ <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+ <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13M12 8C10 4 7 4 7 6s3 2 5 2zm0 0c2-4 5-4 5-2s-3 2-5 2z"/></symbol>
+ <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+ <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></symbol>
+ <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4zM22 9l-6 6M16 9l6 6"/></symbol>
+ <symbol id="i-helmet" viewBox="0 0 24 24"><path d="M4 15a8 8 0 0 1 16 0v5h-5v-5H9v5H4z"/></symbol>
+ <symbol id="i-orb" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 12a4 4 0 0 1 4-4"/></symbol>
+ <symbol id="i-house" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7v11H3zM9 21v-6h6v6"/></symbol>
+ <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/></symbol>
+ <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></symbol>
+ <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
+ <symbol id="i-play" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M10 9v6l5-3z"/></symbol>
+</svg>
 <div id="app">
- <header><b id="floor">Этаж 1</b><span id="act">Тартар</span><button id="snd">🔊</button></header>
+ <header id="top">
+  <div class="brand">Подземелье Аида</div>
+  <div class="actbox">
+   <div class="actl"><span><b id="actn">Акт I</b> · <span id="act">Тартар</span></span><span id="actf"></span></div>
+   <div class="actbar"><i id="actp"></i></div>
+  </div>
+  <div class="curs">
+   <div class="cur"><i class="coin"></i><div><small data-en="Gold">Золото</small><b id="gold">0</b></div></div>
+   <div class="cur"><i class="soul"></i><div><small data-en="Souls">Души</small><b id="souls">0</b></div></div>
+   <div class="cur"><i class="nectar"></i><div><small data-en="Nectar">Нектар</small><b id="nec">0</b></div></div>
+  </div>
+  <div class="tbtns"><button id="snd" class="ib" data-on="1" aria-label="Звук"><svg class="ico i-on"><use href="#i-sound"/></svg><svg class="ico i-off"><use href="#i-mute"/></svg></button><button id="cfg" class="ib" aria-label="Настройки"><svg class="ico"><use href="#i-gear"/></svg></button></div>
+ </header>
  <section id="arena">
-  <div id="mname">Тень</div>
-  <div id="hpbar"><i id="hp"></i><em id="hptxt"></em></div>
-  <div id="timer"></div>
+  <div id="foe">
+   <div id="mname">Тень</div>
+   <div class="meta"><span id="floor">Этаж 1</span><span id="pips"><i></i><i></i><i></i><i></i><i></i></span><span id="nextb"></span></div>
+   <div id="hpbar"><i id="hp"></i><em id="hptxt"></em></div>
+   <div id="timer"></div>
+  </div>
   <div id="monster">👹</div>
+  <div id="hero" class="img"></div>
+  <div id="chest" hidden><svg class="ico"><use href="#i-gift"/></svg><span id="chestl" data-en="Loot">Добыча</span><b id="chestn"></b></div>
+  <div id="fairy" hidden>🧚</div>
+  <div id="toast"></div>
   <div id="fx"></div>
-  <div id="rage"><i id="rageb"></i></div>
+  <div id="flash"></div>
+  <div id="bossban"></div>
+  <div id="tip" hidden><span id="tipt"></span><button id="tipx" aria-label="×">×</button></div>
  </section>
- <section id="stats"><span>⚔️ <b id="cd">0</b></span><span>⚡ <b id="dps">0</b>/с</span><span>💰 <b id="gold">0</b></span><span>🔮 <b id="souls">0</b></span></section>
- <section id="skills"></section>
- <section id="ads">
-  <button id="bHermes">📺 Буст Гермеса +100% (10 мин)</button>
-  <button id="bChest">📺 Сундук Харона</button>
-  <button id="bRetry" hidden>⚔️ Перейти к битве с боссом</button>
-  <button id="bSave" hidden>📺 Босс +15 сек</button>
+ <section id="dock">
+  <div id="stats">
+   <div class="st"><svg class="ico"><use href="#i-sword"/></svg><div><small data-en="Click damage">Урон клика</small><b id="cd">0</b></div></div>
+   <div class="st"><svg class="ico"><use href="#i-bolt"/></svg><div><small data-en="Gods damage">Урон богов</small><b><span id="dps">0</span>/<span id="dpsu">с</span></b></div></div>
+   <div class="st rg"><small data-en="Olympus Wrath">Гнев Олимпа</small><div id="rage"><i id="rageb"></i></div></div>
+  </div>
+  <div id="skills"></div>
+  <div id="ads">
+   <button id="bHermes" class="ad">Буст Гермеса +100% · 10 мин</button>
+   <button id="bChest" class="ad">Сундук Харона</button>
+   <button id="bRetry" hidden>Перейти к битве с боссом</button>
+   <button id="bSave" class="ad" hidden>Босс +15 сек</button>
+  </div>
  </section>
- <nav><button data-t="hero" class="on">⚔️ Герой</button><button data-t="gods">⚡ Боги</button><button data-t="inv">🎒 Вещи</button><button data-t="house">🏛️ Дом</button><button data-t="quest">📜 Квесты</button><button data-t="rew">🎁 Награды</button><button data-t="pres">🔮 Дары</button><button data-t="top">🏆</button></nav>
- <main id="list"></main>
+ <aside id="panel"><main id="list"></main></aside>
+ <nav id="nav">
+  <button data-t="hero" class="on"><svg class="ico"><use href="#i-sword"/></svg><span class="lb">Герой</span><b class="bd"></b></button>
+  <button data-t="gods"><svg class="ico"><use href="#i-bolt"/></svg><span class="lb">Боги</span><b class="bd"></b></button>
+  <button data-t="inv"><svg class="ico"><use href="#i-helmet"/></svg><span class="lb">Вещи</span><b class="bd"></b></button>
+  <button data-t="pres" class="x"><svg class="ico"><use href="#i-orb"/></svg><span class="lb">Дары</span><b class="bd"></b></button>
+  <button data-t="house" class="x"><svg class="ico"><use href="#i-house"/></svg><span class="lb">Дом</span><b class="bd"></b></button>
+  <button data-t="quest"><svg class="ico"><use href="#i-scroll"/></svg><span class="lb">Задания</span><b class="bd"></b></button>
+  <button data-t="rew" class="x"><svg class="ico"><use href="#i-gift"/></svg><span class="lb">Награды</span><b class="bd"></b></button>
+  <button data-t="top" class="x"><svg class="ico"><use href="#i-trophy"/></svg><span class="lb">Подвиги</span><b class="bd"></b></button>
+  <button data-t="more" id="more"><svg class="ico"><use href="#i-dots"/></svg><span class="lb">Ещё</span><b class="bd"></b></button>
+ </nav>
  <div id="dev" hidden><div id="devq"></div><div id="devout"></div><div id="devrow"><input id="devin" placeholder="help" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="devrun">▶</button><button id="devx">×</button></div></div>
+ <div id="adwait" hidden><div>⏳</div></div>
  <div id="modal" hidden><div id="mbox"></div></div>
 </div>
 <script src="game.js"></script>

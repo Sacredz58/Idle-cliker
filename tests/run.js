@@ -4,7 +4,7 @@ class D extends Date{constructor(...a){a.length?super(...a):super(simNow)}static
 const els={};
 const El=id=>{const e={id,style:{},dataset:{},children:[],hidden:false,textContent:'',innerHTML:'',className:'',_h:{},classList:{add(){},remove(){},toggle(){}},appendChild(c){e.children.push(c)},addEventListener(t,f){e._h[t]=f},getBoundingClientRect:()=>({left:0,top:0}),offsetWidth:0};return e};
 let lsN=0,raf;const ls={};
-const ctx={document:{getElementById:i=>els[i]||(els[i]=El(i)),createElement:()=>El(),querySelectorAll:()=>[],_h:{},addEventListener(t,f){this._h[t]=f}},performance:{now:()=>0},requestAnimationFrame:f=>{raf=f},setInterval(){},setTimeout(){},localStorage:{getItem:k=>ls[k]||null,setItem:(k,v)=>{ls[k]=v;lsN++}},Date:D,console};
+const ctx={document:{getElementById:i=>els[i]||(els[i]=El(i)),createElement:()=>El(),querySelectorAll:()=>[],_h:{},addEventListener(t,f){const p=this._h[t];this._h[t]=p?(e=>{p(e);f(e)}):f}},performance:{now:()=>0},requestAnimationFrame:f=>{raf=f},setInterval(){},setTimeout(){},localStorage:{getItem:k=>ls[k]||null,setItem:(k,v)=>{ls[k]=v;lsN++}},Date:D,console,navigator:{language:'ru-RU'},clearTimeout(){}};ctx.document.querySelector=()=>null;
 ctx.window=ctx;vm.createContext(ctx);
 const run=c=>vm.runInContext(c,ctx);
 let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++};
@@ -13,11 +13,11 @@ vm.runInContext(fs.readFileSync(ROOT+'/game.js','utf8'),ctx);
 await new Promise(r=>setImmediate(r));
 ok('init',run('S.floor')===1);
 let tsc=1000;const click=()=>els.arena._h.pointerdown({isTrusted:true,pointerType:'touch',clientX:5+Math.random()*3,clientY:5+Math.random()*3,timeStamp:(tsc+=110+Math.random()*120)});
-for(let i=0;i<25;i++)click();
+for(let i=0;i<25;i++){run('wait=0');click()}
 ok('click kills floor1',run('S.floor')>=2&&run('S.gold')>0);
 // inventory
 run('S.floor=10;spawn();dealt(1e30,false,0,0)');
-ok('boss drops item',run('S.inv.length')===1&&run('S.floor')===11);
+ok('boss drops item (to loot)',run('S.loot.length')===1&&run('S.floor')===11);
 run("S.inv=[{s:0,r:0},{s:0,r:0},{s:0,r:0},{s:1,r:0}]");
 run('craft(0,0)');ok('craft 3->1',run('S.inv.filter(x=>x.s==0&&x.r==1).length')===1&&run('S.inv.length')===2);
 const c0=run('clickD()');run('equip(0,1)');ok('equip raises dmg',run('clickD()')>c0&&run('S.eq[0]')===1);
@@ -30,16 +30,16 @@ simNow+=31e3;run('hTick()');ok('building done after 30s real time',run('S.b[0][0
 const g=run('S.gold');run('dClaim()');ok('daily claim',run('S.gold')>g&&run('S.day')===1);const g2=run('S.gold');run('dClaim()');ok('no double claim',run('S.gold')===g2);
 simNow+=864e5;run('dClaim()');ok('streak continues day2',run('S.day')===2);
 // quests
-run('qn();S.q.p=[0,2,4,6,7];S.q.k=250');const g3=run('S.gold');run('qClaim(0)');run('qClaim(0)');ok('quest claim once',run('S.gold')>g3&&run('S.q.d[0]')===1);
+run('qn();S.q.p=[0,2,4,6,7,8,9,10];S.q.k=250');const g3=run('S.gold');run('qClaim(0)');run('qClaim(0)');ok('quest claim once',run('S.gold')>g3&&run('S.q.d[0]')===1);
 run('tab="quest";tabRender()');ok('quest renders',els.list.innerHTML.includes('Убить 250'));
 // talents + prestige
 run('S.souls=10;S.tot=10;tab="pres";tabRender()');run('buyT(0)');ok('talent bought',run('S.t[0]')===1&&run('S.souls')===7);
-run('S.max=100;S.run=100;prestige()');ok('prestige keeps perm data',run('S.floor')===1&&run('S.souls')===32&&run('S.tot')===35&&run('S.t[0]')===1&&run('S.eq[0]')===0&&run('S.b[0][0]')===1);
-const s1=run('S.souls');ok('run reset after prestige',run('S.run')===1&&run('S.floor')===1);
+run('S.max=100;S.run=100;prestige()');ok('prestige keeps perm data',run('S.floor')===29&&run('S.souls')===32&&run('S.tot')===35&&run('S.t[0]')===1&&run('S.eq[0]')===0&&run('S.b[0][0]')===1);
+const s1=run('S.souls');ok('after prestige the run starts at 29 (30% of 100, non-boss)',run('S.run')===29&&run('S.floor')===29);
 run('prestige()');ok('instant re-prestige gives nothing',run('S.souls')===s1);
 run('S.run=100;prestige()');ok('blocked by cooldown',run('S.souls')===s1&&run('pcd()')>0);
 simNow+=299e3;run('prestige()');ok('still blocked at 4:59',run('S.souls')===s1);
-simNow+=2e3;run('S.run=100;prestige()');ok('allowed after 5 min',run('S.souls')===s1+25&&run('S.run')===1);
+simNow+=2e3;run('S.run=100;prestige()');ok('allowed after 5 min (souls only for floors above the start: 25-6)',run('S.souls')===s1+19&&run('S.run')===29);
 run('tab="pres";tabRender()');ok('cooldown text',run('cdTxt(299500)')==='5:00'&&run('cdTxt(61000)')==='1:01');
 run('S.gold=0;S.hermes=0;S.chest=0;draw()');
 ok('idle ad buttons',els.bHermes.textContent.includes('Буст Гермеса')&&!els.bHermes.disabled&&els.bChest.textContent.includes('Сундук Харона')&&!els.bChest.disabled);
@@ -67,7 +67,7 @@ let lv=1,gg=1e9,bn=0;while(gg>=15*Math.pow(1.13,lv)){gg-=15*Math.pow(1.13,lv);lv
 ok('max count matches brute force',run('plan(WEAPONS[0][2],S.w[0])[0]')===bn);
 run('buy("w",0)');ok('max buys all affordable',run('S.w[0]')===1+bn&&run('S.gold')<run('cost(WEAPONS[0][2],S.w[0])'));
 run('S.gold=0');const gm=run('S.w[0]');run('buy("w",0)');ok('max with no gold buys nothing',run('S.w[0]')===gm&&run('plan(WEAPONS[0][2],S.w[0])[0]')===1);
-run('setQ("25");tab="gods";tabRender()');ok('selector rendered, setQ works',run('BQ')===25&&els.list.innerHTML.includes('МАКС')&&els.list.innerHTML.includes('x100'));
+run('setQ("25");tab="gods";tabRender()');ok('selector rendered, setQ works',run('BQ')===25&&els.list.innerHTML.includes('Макс')&&els.list.innerHTML.includes('×100')&&els.list.innerHTML.includes('Покупать'));
 run('setQ("max")');ok('setQ max',run('BQ')==='max');run('BQ=1');
 run('S=S0();S.floor=10;spawn();bossT=0.1');ok('boss fight active',run('inBoss')===true&&run('S.farm')===false);
 raf(250);
@@ -82,7 +82,7 @@ run('dealt(1e30,false,0,0)');ok('beating boss advances to 11',run('S.floor')===1
 run('S.floor=20;spawn();bossT=0.1');raf(500);els.bSave.onclick();ok('rescue video restarts boss with extra time',run('S.floor')===20&&run('inBoss')===true&&run('bossT')>40&&els.bRetry.hidden===true);
 raf(0);
 const pd=o=>els.arena._h.pointerdown(Object.assign({isTrusted:true,pointerType:'touch',clientX:50,clientY:50},o));
-const reset=()=>{run('S=S0();spawn();ck.last=0;ck.iv=[];ck.ts=[];ck.m=1;rage=0;clicks=[]');els.modal.hidden=true};
+const reset=()=>{run('S=S0();spawn();ck.last=0;ck.iv=[];ck.ts=[];ck.m=1;rage=0;clicks=[];wait=0');els.modal.hidden=true};
 {
 reset();const hp0=run('hp');pd({isTrusted:false,timeStamp:1});ok('synthetic (untrusted) click ignored',run('hp')===hp0);
 pd({pointerType:'mouse',button:2,timeStamp:5e6});ok('right mouse button ignored',run('hp')===hp0);
@@ -102,14 +102,14 @@ run('tab="inv";tabRender()');els.list.innerHTML='MARK';run('dealt(1e30,false,0,0
 run('hTick()');ok('inv tab refreshes after kill (deferred to next tick)',els.list.innerHTML!=='MARK');
 {const M=run('Math'),mr=M.random;
 reset();run('S.w[0]=1');run('useSk(0)');ok('locked skill does nothing',run('S.sc[0]')===0&&run('S.gold')===0);
-run('S.w[0]=10;draw()');ok('skill button unlocked, locked ones show lock',!els.skills.children[0].textContent.includes('🔒')&&els.skills.children[3].textContent.includes('🔒'));
+run('S.max=60;draw()');ok('skill button unlocked, locked ones show lock',els.skills.children[0].dataset.st==='rdy'&&els.skills.children[3].dataset.st==='lock'&&els.skills.children[3].innerHTML.includes('#i-lock')&&els.skills.children[3].title.includes('откроется на этаже 300'));
 run('useSk(0)');ok('Styx strike hits and starts cooldown',run('S.gold')>0&&run('S.sc[0]')>simNow&&els.skills.children[0].disabled===true);
 const sc0=run('S.sc[0]');run('useSk(0)');ok('no use during cooldown',run('S.sc[0]')===sc0);
 simNow+=31e3;run('draw()');ok('skill ready after 30s',els.skills.children[0].disabled===false);
-reset();run('S.w[3]=10;S.floor=5;spawn()');const cd0=run('clickD()');run('useSk(3)');ok('Icarus x3 click dmg',Math.abs(run('clickD()')/cd0-3)<1e-9);
+reset();run('S.max=500;S.floor=5;spawn()');const cd0=run('clickD()');run('useSk(3)');ok('Icarus x3 click dmg',Math.abs(run('clickD()')/cd0-3)<1e-9);
 simNow+=11e3;ok('Icarus buff expires',Math.abs(run('clickD()')/cd0-1)<1e-9);
-reset();run('S.w[1]=10;S.floor=5;spawn()');ok('no auto-dps before skill',run('dps()')===0);run('useSk(1)');ok('Athena throw adds autoclicks',run('dps()')>0);simNow+=9e3;ok('Athena throw ends',run('dps()')===0);
-reset();run('S.w[2]=10;S.floor=5;spawn()');run('useSk(2)');ok('Shield needs boss fight',run('S.sc[2]')===0);
+reset();run('S.max=500;S.floor=5;spawn()');ok('no auto-dps before skill',run('dps()')===0);run('useSk(1)');ok('Athena throw adds autoclicks',run('dps()')>0);simNow+=9e3;ok('Athena throw ends',run('dps()')===0);
+reset();run('S.max=500;S.floor=5;spawn()');run('useSk(2)');ok('Shield needs boss fight',run('S.sc[2]')===0);
 run('S.floor=10;spawn()');run('useSk(2)');ok('Shield +10s boss timer',Math.abs(run('bossT')-40)<1e-9);
 reset();run('S.g[0]=9');const p9=run('pt(0)');run('S.g[0]=10');const p10=run('pt(0)');run('S.g[0]=50');ok('passive tiers 0/1/2',p9===0&&p10===1&&run('pt(0)')===2);
 raf(0);reset();run('S.g[0]=10;S.floor=15;spawn();zt=7.9');raf(250);const dz=run('maxhp-hp');ok('Zeus lightning strikes after 8s',dz>=380&&dz<=440&&run('zt')===0);raf(0);
@@ -122,10 +122,11 @@ reset();run('S.floor=5;S.g[4]=10;spawn()');h0=run('hp');pd({timeStamp:2e7+9e3});
 ok('Apollo raises crit chance (0.2 roll crits only with passive)',Math.abs(d1/d0-3)<1e-6);
 reset();run('S.floor=5;S.g[5]=10;spawn();rage=0');for(let i=0;i<9;i++)pd({timeStamp:3e7+i*150});ok('Hermes passive: rage from 9 clicks',run('rage')>0);
 reset();run('S.floor=5;spawn();rage=0');for(let i=0;i<9;i++)pd({timeStamp:4e7+i*150});ok('no rage from 9 clicks without passive',run('rage')===0);run('rage=0');
-reset();run('S.g[6]=10;S.floor=10;spawn();dealt(1e30,false,0,0)');ok('Demeter: 2 items from boss',run('S.inv.length')===2);
+reset();run('S.g[6]=10;S.floor=10;spawn();dealt(1e30,false,0,0)');ok('Demeter: 2 items from boss',run('S.loot.length')===2);
 reset();run('S.g[7]=10;S.floor=10;spawn()');ok('Athena passive: boss timer 40',run('bossT')===40);
 run('tab="gods";tabRender()');ok('gods tab shows passives',els.list.innerHTML.includes('Пассив «Молния»'));
-run('tab="hero";tabRender()');ok('hero tab shows active skills',els.list.innerHTML.includes('Актив «Удар Стикса»'));
+run('tab="hero";htab="w";tabRender()');ok('hero tab: weapons by default with sub-tabs',els.list.innerHTML.includes('Меч Стикса')&&els.list.innerHTML.includes('setHT(')&&!els.list.innerHTML.includes('buySk('));
+run('setHT("s")');ok('hero tab shows hero skills with unlock floors',els.list.innerHTML.includes('Удар Стикса')&&els.list.innerHTML.includes('откроется на этаже 10'));
 }
 {const old=run('JSON.stringify(Object.assign(S0(),{g:[1,2,3,4,5,6,7,8],floor:7}))');ls.hades=old;await run('load()');
 ok('old 8-god save migrates to 12 gods',run('S.g.length')===18&&run('S.g[0]')===1&&run('S.g[7]')===8&&run('S.g[11]')===0&&run('S.floor')===7);
@@ -139,25 +140,25 @@ run('S.t[4]=25');run('buyT(4)');ok('talent cap respected',run('S.t[4]')===25);ru
 const hit=(setup,rnd)=>{reset();run(setup);M.random=()=>rnd;const h=run('hp');pd({timeStamp:9e7});return h-run('hp')};
 const a1=hit('S.floor=5;spawn()',.05),a2=hit('S.floor=5;S.t[3]=5;spawn()',.05);ok('crit damage talent (x3 -> x4 at lvl5)',Math.abs(a2/a1-4/3)<1e-9);
 const b1=hit('S.floor=5;spawn()',.105),b2=hit('S.floor=5;S.t[4]=1;spawn()',.105);ok('crit chance talent +1%',Math.abs(b2/b1-3)<1e-9);M.random=mr;
-reset();run('S.t[5]=10;S.w[3]=10;S.floor=5;spawn();useSk(3)');ok('mastery doubles Icarus duration',Math.abs(run('S.se[3]')-simNow-20000)<1);
-reset();run('S.t[5]=10;S.w[2]=10;S.floor=10;spawn();useSk(2)');ok('mastery boosts Shield seconds',Math.abs(run('bossT')-50)<1e-9);
-reset();run('S.t[5]=10;S.w[0]=10;S.floor=15;spawn();useSk(0)');const hs=run('maxhp-hp');reset();run('S.w[0]=10;S.floor=15;spawn();useSk(0)');ok('mastery doubles Styx hit',Math.abs(hs/run('maxhp-hp')-2)<1e-6);
-reset();run('S.t[6]=10;S.w[0]=10;S.floor=15;spawn();useSk(0)');ok('Chronos echo: cooldown -30%',Math.abs(run('S.sc[0]')-simNow-21000)<1);
+reset();run('S.t[5]=10;S.max=500;S.floor=5;spawn();useSk(3)');ok('mastery doubles Icarus duration',Math.abs(run('S.se[3]')-simNow-20000)<1);
+reset();run('S.t[5]=10;S.max=500;S.floor=10;spawn();useSk(2)');ok('mastery boosts Shield seconds',Math.abs(run('bossT')-50)<1e-9);
+reset();run('S.t[5]=10;S.max=500;S.floor=15;spawn();useSk(0)');const hs=run('maxhp-hp');reset();run('S.max=500;S.floor=15;spawn();useSk(0)');ok('mastery doubles Styx hit',Math.abs(hs/run('maxhp-hp')-2)<1e-6);
+reset();run('S.t[6]=10;S.max=500;S.floor=15;spawn();useSk(0)');ok('Chronos echo: cooldown -30%',Math.abs(run('S.sc[0]')-simNow-21000)<1);
 reset();run('S.g[0]=10;S.t[7]=2;S.last=Date.now()-20*3600e3;S.gold=0;offline()');els.o1.onclick();ok('offline cap +1h from talent',Math.abs(run('S.gold')-40*9*3600*.05)<1);
 ls.hades=run('JSON.stringify(Object.assign(S0(),{w:[5,0,0,0,0,0,0,0,0,0,0],g:[1,2,3,4,5,6,7,8,9,10,11,12],t:[1,2,3],floor:9}))');await run('load()');
 ok('old save (11 weapons/12 gods/3 talents) migrates',run('S.w.length')===17&&run('S.w[0]')===5&&run('S.g.length')===18&&run('S.g[11]')===12&&run('S.t.length')===8&&run('S.t[2]')===3&&run('S.t[7]')===0);
 }
 {
-ok('quest pool >=12, 5 distinct per day',run('QD.length')>=12&&(()=>{for(let i=0;i<60;i++){run('S.q=null;qn()');if(run('S.q.p.length')!==5||run('new Set(S.q.p.map(i=>QD[i][1])).size')!==5)return false}return true})());
-run('S.q={t:Date.now(),k:5,c:1,b:0,d:[0,0,0]};qn()');ok('old 3-quest save migrates',run('S.q.p.length')===5&&run('S.q.d.length')===5);
+ok('quest pool >=12, 5 distinct per day',run('QD.length')>=12&&(()=>{for(let i=0;i<60;i++){run('S.q=null;qn()');if(run('S.q.p.length')!==8||run('new Set(S.q.p.map(i=>QD[i][1])).size')!==8)return false}return true})());
+run('S.q={t:Date.now(),k:5,c:1,b:0,d:[0,0,0]};qn()');ok('old 3-quest save migrates',run('S.q.p.length')===8&&run('S.q.d.length')===8);
 reset();run('S.gold=1e9;BQ=5;buy("w",0);BQ=1');ok('upgrade counter',run('S.q.u')===5);
-reset();run('S.w[0]=10;useSk(0)');ok('skill counter',run('S.q.s')===1);
+reset();run('S.max=500;useSk(0)');ok('skill counter',run('S.q.s')===1);
 reset();run('S.floor=2;spawn()');for(let i=0;i<5;i++)run('dealt(1e30,false,0,0)');ok('new-floor + kill counters',run('S.q.f')===1&&run('S.q.k')===5);
 reset();run('S.floor=10;spawn();dealt(1e30,false,0,0)');ok('item + boss counters',run('S.q.i')===1&&run('S.q.b')===1);
 reset();run('S.gold=1e12;build(0)');ok('build counter',run('S.q.h')===1);
 reset();run('S.q=null');els.bHermes.onclick();ok('ad counter',run('S.q.a')===1);
 reset();run('S.floor=5;spawn()');for(let i=0;i<12;i++)pd({timeStamp:6e7+i*150});ok('rage counter',run('S.q.r')===1);
-reset();run('qn();S.q.p=[1,2,4,6,7];S.q.k=1000;S.max=1;S.gold=0');run('qClaim(0)');ok('quest reward scales with difficulty',Math.abs(run('S.gold')-run('mHP(10)*8'))<1e-6);
+reset();run('qn();S.q.p=[1,2,4,6,7,8,9,10];S.q.k=1000;S.max=1;S.gold=0');run('qClaim(0)');ok('quest reward scales with difficulty',Math.abs(run('S.gold')-run('mHP(10)*8'))<1e-6);
 reset();run('S.max=250;S.gold=0');const n1=simNow;run('openAc(0)');ok('ad reward: gold, cooldown exactly 10 min',run('S.gold')>0&&run('S.ac[0]')-n1===600000);
 const g1=run('S.gold');run('openAc(0)');ok('ad reward blocked during cooldown',run('S.gold')===g1);
 simNow+=601e3;run('openAc(0)');ok('ad reward available after 10 min',run('S.gold')>g1);
@@ -248,7 +249,7 @@ run('S.sc=[9e15,9e15,9e15,9e15];S.chest=9e15;S.ac=[9e15,9e15,9e15,9e15];S.pt=9e1
 dx('hermes 5');ok('hermes 5 min',Math.abs(run('S.hermes')-simNow-3e5)<1);
 reset();dx('floor 3');dx('kill 5');ok('kill 5 clears floor 3',run('S.floor')===4);
 dx('boss');ok('boss -> next boss floor 10',run('S.floor')===10&&run('inBoss')===true);dx('boss');ok('boss -> 20',run('S.floor')===20);
-reset();dx('floor 100');run('S.pt='+simNow);dx('prestige');ok('forced prestige ignores cooldown, keeps cheat flag',run('S.souls')===25&&run('S.floor')===1&&run('S.cheat')===true);
+reset();dx('floor 100');run('S.pt='+simNow);dx('prestige');ok('forced prestige ignores cooldown, keeps cheat flag',run('S.souls')===25&&run('S.floor')===29&&run('S.cheat')===true);
 reset();run('S.max=250');dx('quests');ok('quests all completed',run('S.q.p.every(qi=>S.q[QD[qi][1]]>=QD[qi][2])'));
 run('S.gold=0');run('qClaim(0)');ok('reward claimable after dev-complete',run('S.gold')>0);
 dx('day 5');ok('day 5 shown in quests',run('questH()').includes('День 5 из 7'));
@@ -289,7 +290,7 @@ ok('mHP monotonic over non-boss floors',(()=>{let p=0;for(let f=1;f<=10000;f+=7)
 run('S.tot=100');ok('soul multiplier (1+0.05*souls)^1.5',Math.abs(run('soulM()')-Math.pow(6,1.5))<1e-9);run('S.tot=0');
 const F=x=>run(`fmt(${x})`);
 ok('fmt K/M/B/T and rounding',F(999)==='999'&&F(0)==='0'&&F(1500)==='1.50K'&&F(12345)==='12.3K'&&F(123456)==='123K'&&F(999999)==='1.00M'&&F(2.5e6)==='2.50M'&&F('1.234e12')==='1.23T'&&F(1e60)==='1.00e60'&&F('Infinity')==='∞');
-raf(0);reset();run('S.g[7]=100;S.floor=3;spawn()');raf(16);ok('many kills per frame (25 monsters = 5 floors)',run('S.floor')===8&&run('S.mk')===0);
+raf(0);reset();run('S.g[7]=100;S.floor=3;spawn()');for(let i=1;i<=20;i++)raf(i*250);ok('spawn delay: ~5 monsters/s (about 25 kills in 5 s), not hundreds of floors per minute',run('S.q.k')>=24&&run('S.q.k')<=26&&run('S.floor')>=7&&run('S.floor')<=8);raf(0);
 raf(0);reset();run('S.g[7]=100;S.floor=10000;spawn();hp=1');els.modal.hidden=true;raf(16);ok('final boss: one kill per frame, victory popup, no hang',run('S.floor')===10000&&els.modal.hidden===false&&els.mbox.innerHTML.includes('Хаос повержен'));els.modal.hidden=true;
 raf(0);reset();run('S.floor=10;spawn()');const b0=run('bossT');run('pause(true)');raf(250);ok('paused game does not tick (boss timer frozen)',run('bossT')===b0);run('pause(false)');raf(500);ok('resumes after pause',Math.abs(run('bossT')-(b0-.25))<1e-9);raf(0);
 ctx.__gp=[];ctx.__ok=0;run('ysdk={features:{GameplayAPI:{start(){__gp.push("s")},stop(){__gp.push("x")}}},adv:{showRewardedVideo:o=>{o.callbacks.onOpen();o.callbacks.onRewarded();o.callbacks.onClose()}}}');
@@ -308,14 +309,251 @@ run('submitScore()');run('submitScore()');ok('leaderboard: 2nd submit within 20s
 simNow+=21e3;run('lbFlush()');ok('queued score flushed after 20s',ctx.__lb===2&&run('lbP')===false);
 run('lbT=0;ysdk={leaderboards:{setScore:()=>{__lb2++;return Promise.resolve()}}};submitScore()');ok('new leaderboards.setScore API preferred',ctx.__lb2===1);
 run('lbT=0;S.cheat=true;submitScore()');ok('cheat flag still blocks new API',ctx.__lb2===1);run('ysdk=null;S.cheat=false;lbP=false');
-ctx.AudioContext=function(){this.state='running';this.currentTime=0;this.destination={};this.createOscillator=()=>{ctx.__osc=(ctx.__osc||0)+1;return{frequency:{},connect(){},start(){},stop(){}}};this.createGain=()=>({gain:{exponentialRampToValueAtTime(){}},connect(){}})};
+ctx.AudioContext=function(){const P=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(){},linearRampToValueAtTime(){}}),N=x=>Object.assign({connect(){},disconnect(){}},x);this.state='running';this.currentTime=0;this.sampleRate=800;this.destination={};this.createOscillator=()=>{ctx.__osc=(ctx.__osc||0)+1;return N({type:'',frequency:P(),detune:P(),start(){},stop(){}})};this.createGain=()=>N({gain:P()});this.createBiquadFilter=()=>N({type:'',frequency:P(),Q:P()});this.createConvolver=()=>N({buffer:null});this.createDynamicsCompressor=()=>N({});this.createBuffer=(c,l)=>({getChannelData:()=>new Float32Array(l)});this.createBufferSource=()=>{ctx.__src=(ctx.__src||0)+1;return N({buffer:null,start(){},stop(){}})};this.resume=()=>{this.state='running'};this.suspend=()=>{this.state='suspended'}};
 let pt=1e6;ctx.performance.now=()=>(pt+=100);ctx.__osc=0;run('sound=true;paused=false;sfx("click")');ok('sfx plays a sound',ctx.__osc===1);
 run('pause(true);sfx("click");pause(false)');ok('no sound while paused',ctx.__osc===1);
 run('sound=false;sfx("kill");sound=true');ok('no sound when muted',ctx.__osc===1);
-els.snd.onclick();ok('mute button toggles',run('sound')===false&&els.snd.textContent==='🔇');els.snd.onclick();ok('unmute',run('sound')===true);
+els.snd.onclick();ok('mute button toggles',run('sound')===false&&els.snd.dataset.on==='0');els.snd.onclick();ok('unmute',run('sound')===true);
 Mx.random=Mx.random;
 const Mq=run('Math'),mrq=Mq.random;Mq.random=()=>0;const top2=f=>{run(`S.floor=${f};S.inv=[];drop()`);return run('S.inv[0].r')};
 ok('natural drop cap by depth extended: 3500→4, 5000→5, 8000→6',top2(3500)===4&&top2(5000)===5&&top2(8000)===6);Mq.random=mrq;
+}
+{
+const Mr=run('Math'),mrr=Mr.random;
+reset();run('S.floor=5;spawn()');run('dealt(1e30,false,0,0)');ok('monster hidden during spawn delay',run('wait')>0);
+reset();run('S.floor=5;spawn()');const h0=run('hp');run('wait=.2');pd({timeStamp:9e8});ok('clicks do not hit a monster that has not appeared yet (but still counted)',run('hp')===h0&&run('S.q.c')===1);
+run('wait=0');pd({timeStamp:9e8+500});ok('clicks hit after the delay',run('hp')<h0);
+reset();run('S.max=500;wait=.2');const sc00=run('S.sc[0]');run('useSk(0)');ok('Styx not wasted while no monster is present',run('S.sc[0]')===sc00);
+reset();run('S.floor=10;spawn();dealt(1e300,false,0,0)');ok('boss drop goes to loot, inventory untouched',run('S.loot.length')===1&&run('S.inv.length')===0);
+ok('loot chest shown on the arena with count',els.chest.hidden===false&&els.chestn.textContent==='1');
+run('claimLoot()');const lh=els.mbox.innerHTML;ok('claim moves items to inventory and lists them',run('S.inv.length')===1&&run('S.loot.length')===0&&lh.includes('Добыча с боссов')&&run('SL.some(n=>'+JSON.stringify(lh)+'.includes(n))')&&run('RN.some(n=>'+JSON.stringify(lh)+'.includes(n))'));
+ok('loot chest hidden after claim',els.chest.hidden===true);
+reset();run('S.inv=[];S.loot=[];for(let i=0;i<305;i++)drop(0,true)');ok('loot capped at 300 (overflow goes to inventory)',run('S.loot.length')===300&&run('S.inv.length')===5);
+reset();run('S.loot=[{s:0,r:1}];S.run=100;S.max=100;prestige()');ok('loot survives prestige',run('S.loot.length')===1);
+ok('quest pool >= 20, 8 per day',run('QD.length')>=20&&run('QN')===8);
+reset();Mr.random=()=>0;run('S.floor=5;spawn()');pd({timeStamp:7e8});Mr.random=mrr;ok('crit counter for quests',run('S.q.x')===1);
+reset();run('S.max=250');run('openAc(1)');ok('ad-chest counter',run('S.q.o')===1);
+reset();run('S.inv=[];for(let i=0;i<12;i++)S.inv.push({s:0,r:0})');run('craftAll()');ok('synthesis counter (12 common -> 5 syntheses)',run('S.q.m')===5);
+reset();run('S.inv=[{s:0,r:0},{s:0,r:0},{s:0,r:0}]');run('craft(0,0)');ok('single synthesis counted',run('S.q.m')===1);
+reset();run('S.g[0]=10');for(let i=0;i<8;i++)run('hTick()');run('heroAtk()');ok('hero idle/attack animation hooks run',true);
+run('setVol(0,40)');run('setVol(1,150)');ok('volume sliders set and clamp',run('S.vol[0]')===.4&&run('S.vol[1]')===1);
+run('openCfg()');const ch=els.mbox.innerHTML;ok('settings window with 2 sliders',ch.includes('Настройки')&&(ch.match(/type="range"/g)||[]).length===2);
+ctx.__osc=0;run('S.vol=[0,.3];sound=true;paused=false;sfx("kill")');ok('effects volume 0 -> silent',ctx.__osc===0);
+run('S.vol=[.7,.3];AUD&&(AUD.state="running");sfx("kill")');ok('effects audible at default volume',ctx.__osc===1);
+ctx.__osc=0;run('S.vol=[.7,.3];musTick()');ok('music plays notes',ctx.__osc>=1);
+ctx.__osc=0;run('S.vol=[.7,0];musTick()');ok('music volume 0 -> silent',ctx.__osc===0);
+run('S.vol=[.7,.3];sound=false;musTick()');ok('mute stops music',ctx.__osc===0);
+run('sound=true;AUD.state="suspended";musTick()');ok('music waits for audio unlock (suspended context)',ctx.__osc===0);run('AUD.state="running"');
+const css=fs.readFileSync(ROOT+'/style.css','utf8'),htm=fs.readFileSync(ROOT+'/index.html','utf8');
+{const nv=htm.match(/<nav[^>]*>[\s\S]*<\/nav>/)[0];ok('menu: 8 sections + «More» on phones, side rail on wide screens',(nv.match(/<button data-t="(hero|gods|inv|pres|house|quest|rew|top)"/g)||[]).length===8&&nv.includes('data-t="more"')&&(nv.match(/class="x"/g)||[]).length===4&&css.includes('nav.open button.x')&&css.includes('nav{grid-area:nav;flex-direction:column'))}
+ok('hero, settings and loot elements in html',htm.includes('id="hero"')&&htm.includes('id="cfg"')&&htm.includes('id="chest"')&&htm.includes('id="fairy"')&&!htm.includes('bLoot'));
+}
+{
+const Mt=run('Math'),mrt=Mt.random,dx2=c=>run('devExec('+JSON.stringify(c)+')');
+reset();run('S.floor=10;spawn();dealt(1e300,false,0,0)');let tapped=0;els.chest._h.pointerdown({stopPropagation(){tapped++}});
+ok('tap on the arena chest claims loot (does not count as an arena click)',tapped===1&&run('S.inv.length')===1&&run('S.loot.length')===0&&els.chest.hidden===true&&run('S.q.c')===0);
+ok('item bonus values raised for low rarities',run('RB.join()')==='0.3,0.7,1.4,2.2,4.5,9,20,45');
+reset();run('S.eq=[0,-1,-1,-1,-1,-1];tab="inv";tabRender()');ok('inventory shows total item bonus',els.list.innerHTML.includes('Бонус предметов')&&els.list.innerHTML.includes('×1.30'));
+// skills: unlock by record floor, souls upgrades
+reset();run('S.max=9');const a9=run('skLv(0)');run('S.max=10');const a10=run('skLv(0)');run('S.sl[0]=2');ok('skill levels: locked below floor 10, auto level 1 at 10, +souls levels',a9===0&&a10===1&&run('skLv(0)')===3&&Math.abs(run('pw(0)')-1.45)<1e-9);
+reset();run('S.souls=100;S.max=1;buySk(0)');ok('cannot upgrade a locked skill',run('S.sl[0]')===0&&run('S.souls')===100);
+run('S.max=500;buySk(0)');ok('skill upgrade costs souls (3 for the first)',run('S.sl[0]')===1&&run('S.souls')===97);
+ok('next level price grows x1.55',run('skCost(0)')===5&&run('skCost(3)')===12);
+reset();run('S.max=500;S.sl=[10,10,0,0]');const n0=simNow;run('useSk(0)');run('useSk(1)');ok('skill levels shorten cooldown (-1%/lvl) and extend duration (+2%/lvl)',Math.abs(run('S.sc[0]')-n0-30000*.9)<1e-6&&Math.abs(run('S.se[1]')-n0-8000*1.2)<1e-6);
+reset();run('S.sl=[3,0,0,0];S.run=100;S.max=100;prestige()');ok('skill levels survive prestige',run('S.sl[0]')===3);
+reset();run('S.max=500;S.souls=50;tab="hero";htab="s";tabRender()');ok('hero tab lists upgradable skills',els.list.innerHTML.includes('buySk(0)')&&els.list.innerHTML.includes('class="soul"></i> 3'));run('htab="w"');
+// nectar sources
+reset();run('rewarded(()=>{})');ok('video reward: +1 nectar',run('S.nec')===1);
+reset();run('S.max=250;qn();S.q.p.forEach(qi=>{S.q[QD[qi][1]]=Math.max(S.q[QD[qi][1]],QD[qi][2])})');for(let j=0;j<8;j++)run(`qClaim(${j})`);ok('8 daily quests: 8 nectar + 5 bonus for all',run('S.nec')===13);run('qClaim(0)');ok('bonus is paid once',run('S.nec')===13);
+reset();run('S.day=6;S.dl=new Date(NOW()-864e5).toDateString()');run('dClaim()');ok('day 7 login: +10 nectar +5 souls',run('S.nec')===10&&run('S.souls')===5);
+reset();run('S.nec=1500;draw()');ok('nectar shown in the stats bar',els.nec.textContent==='1.50K');
+// shop
+reset();run('S.nec=10;S.max=250;S.inv=[]');dx2('help');run('buyShop(0)');ok('shop: bronze chest for nectar (no ad), cooldown starts',run('S.nec')===6&&run('S.inv.length')===1&&run('S.ac[1]')>simNow);
+run('buyShop(0)');ok('shop: chest on cooldown cannot be bought',run('S.nec')===6);
+run('S.nec=3;buyShop(1)');ok('shop: not enough nectar -> nothing',run('S.nec')===3&&run('S.ac[2]')===0);
+reset();run('S.nec=10;S.pt='+simNow);run('buyShop(3)');ok('shop: prestige cooldown reset',run('S.pt')===0&&run('S.nec')===4);run('buyShop(3)');ok('no charge when no cooldown',run('S.nec')===4);
+reset();run('S.nec=10;S.b[0][1]=NOW()+1e6');run('buyShop(4)');ok('shop: finish buildings now',run('S.b[0][0]')===1&&run('S.b[0][1]')===0&&run('S.nec')===7);run('buyShop(4)');ok('no charge without building',run('S.nec')===7);
+reset();run('S.nec=10;qn();S.q.k=77');run('buyShop(5)');ok('shop: new daily quests (progress reset)',run('S.q.k')===0&&run('S.nec')===5);
+const kg=()=>{run('S.floor=1;S.gold=0;spawn()');run('dealt(1e30,false,0,0)');return run('S.gold')};
+reset();const g1=kg();run('S.nec=20;buyShop(6)');const g2=kg();ok('shop: gold fever doubles kill gold',Math.abs(g2/g1-2)<1e-9&&run('S.nec')===8);
+reset();const c1=run('clickD()');run('S.nec=20;buyShop(7)');ok('shop: Hermes 1h doubles damage',Math.abs(run('clickD()')/c1-2)<1e-9&&run('S.hermes')>=simNow+36e5-1);
+// cosmetics
+reset();run('S.nec=25;buyCos(0,1)');ok('cosmetics: buy and wear a hero skin',run('S.own[0].includes(1)')&&run('S.skin')===1&&run('S.nec')===5&&els.hero.textContent==='🦸');
+run('buyCos(0,2)');ok('cosmetics: not enough nectar',run('S.skin')===1&&run('S.nec')===5);run('buyCos(0,0)');ok('wear owned skin for free',run('S.skin')===0&&run('S.nec')===5);ok('skin 0 shows the hero picture, skin 1 an emoji',els.hero.className==='img'&&els.hero.textContent==='');run('buyCos(0,1)');ok('other skin replaces the picture',els.hero.className===''&&els.hero.textContent==='🦸');run('buyCos(0,0)');
+run('S.nec=30;buyCos(1,1)');ok('cosmetics: arena theme applied',run('S.theme')===1&&els.app.style.background===run('THB[1]'));
+// payments
+els.modal.hidden=true;run('buyPack(0)');ok('packs outside Yandex: explanatory popup',els.modal.hidden===false&&els.mbox.innerHTML.includes('только в Яндекс Играх'));
+reset();run('S.nec=0;ysdk={getPayments:()=>Promise.resolve({purchase:o=>{__buy=o.id;return Promise.resolve({purchaseToken:"tok"})},consumePurchase(){__cons=1}})}');ctx.__buy='';ctx.__cons=0;run('buyPack(1)');await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));
+ok('Yandex payment: nectar pack granted and purchase consumed',ctx.__buy==='nectar_350'&&run('S.nec')===350&&ctx.__cons===1);run('ysdk=null');
+// fairies
+reset();run('fairySpawn()');ok('fairy appears',els.fairy.hidden===false&&run('fnx')>simNow);
+Mt.random=()=>0;const gf0=run('S.gold');run('fairyTap()');Mt.random=mrt;ok('fairy: gold reward and hides',run('S.gold')>gf0&&els.fairy.hidden===true);
+run('fairySpawn()');Mt.random=()=>.7;run('fairyTap()');Mt.random=mrt;ok('fairy: nectar reward',run('S.nec')===1);
+run('fairySpawn()');Mt.random=()=>.9;run('fairyTap()');Mt.random=mrt;ok('fairy: Hermes 2 min',run('S.hermes')>simNow);
+run('fairySpawn()');els.fairy._h.animationend();ok('fairy flies away by itself',els.fairy.hidden===true);
+els.fairy.hidden=true;run('fnx=0;hTick()');ok('fairy spawns on schedule',els.fairy.hidden===false);run('fnx=NOW()+1e9');els.fairy.hidden=true;
+Mt.random=mrt;
+}
+{
+const Mp=run('Math'),mrp=Mp.random;
+reset();run('S.run=1000;S.max=1000;prestige()');
+let exp=0;for(let i=1;i<=299;i++){exp+=run(`mHP(${i})`)*.1*(i%10==0?3:1)}
+ok('prestige from best floor 1000 starts at 299 (30%, not a boss floor)',run('S.floor')===299&&run('S.sf')===299&&run('S.run')===299);
+ok('start gold = gold of the skipped floors',Math.abs(run('S.gold')/exp-1)<1e-9);
+ok('no start HP lock: first monster appears normally',run('maxhp')>0&&run('inBoss')===false);
+const sv0=run('S.souls');run('S.pt=0;prestige()');ok('re-prestige without climbing gives no souls',run('S.souls')===sv0&&run('S.floor')===299);
+run('S.run=2000;S.pt=0;prestige()');ok('souls only for floors above the start (2000 vs 299)',run('S.souls')===sv0+run('soulG(2000)-soulG(299)'));
+reset();run('S.run=3;prestige()');ok('tiny run: soul gain 0, no prestige',run('S.souls')===0&&run('S.floor')===1);
+reset();run('S.run=10;S.pt=0');run('prestige()');ok('run of 10 floors gives souls and restarts at floor 3',run('S.floor')===3||run('S.floor')===1);
+reset();run('S.run=1234;tab="pres";tabRender()');ok('prestige tab announces the next start floor',els.list.innerHTML.includes('следующий старт с этажа '+run('startF()')));
+ok('startF never lands on a boss floor',[1,9,10,33,34,100,1000,5000,9999,10000].every(r=>{run(`S.run=${r}`);const f=run('startF()');return f>=1&&f%10!==0||f===1}));
+// fairy gold from income, not from record floor
+reset();run('S.g[0]=10;S.max=10');run('fairySpawn()');Mp.random=()=>0;run('S.gold=0;fairyTap()');const fg1=run('S.gold');
+reset();run('S.g[0]=10;S.max=10000');run('fairySpawn()');run('S.gold=0;fairyTap()');const fg2=run('S.gold');
+reset();run('S.g[0]=40;S.max=10');run('fairySpawn()');run('S.gold=0;fairyTap()');const fg3=run('S.gold');Mp.random=mrp;
+ok('fairy gold does not depend on record floor',fg1>0&&fg1===fg2);
+ok('fairy gold grows with current income (dps)',fg3>fg1&&Math.abs(fg1-Math.max(100,4*10*12))<1e-6);
+// percent formatting without float noise
+ok('pct helper: 30/70/140/220/450/900/2000/4500',run('RB.map(pct).join()')==='30,70,140,220,450,900,2000,4500');
+reset();run('S.inv=[{s:0,r:3},{s:1,r:2}];S.eq=[3,-1,-1,-1,-1,-1];tab="inv";tabRender()');const ph=els.list.innerHTML;
+ok('inventory shows +220% and +140% without decimals noise',ph.includes('+220%')&&ph.includes('+140%')&&!/\d{5,}/.test(ph.replace(/onclick="[^"]*"/g,'')));
+reset();run('S.loot=[{s:0,r:3}]');run('claimLoot()');ok('loot popup: (+220%)',els.mbox.innerHTML.includes('(+220%)'));
+run('S.max=250;S.inv=[]');run('acGive(3)');ok('chest text uses clean percents',!/\.\d{6,}/.test(run('acGive(3)')));
+}
+{const htm2=fs.readFileSync(ROOT+'/index.html','utf8'),css2=fs.readFileSync(ROOT+'/style.css','utf8');
+ok('hero image wired: preload + CSS + file exists',htm2.includes('img/hero.webp')&&css2.includes('url(img/hero.webp)')&&fs.existsSync(ROOT+'/img/hero.webp'));}
+{const css3=fs.readFileSync(ROOT+'/style.css','utf8');
+reset();run('S.floor=7;spawn()');ok('act I arena: data-act=0, CSS background wired, file exists',els.arena.dataset.act===0&&css3.includes('url(img/act1_bg.webp)')&&fs.existsSync(ROOT+'/img/act1_bg.webp'));
+ok('monster name in genitive',els.mname.textContent==='Тень Тартара');
+run('S.floor=601;spawn()');ok('act II: data-act=1, Asphodel name',els.arena.dataset.act===1&&els.mname.textContent==='Тень Асфоделя');
+run('S.floor=7520;spawn()');ok('boss-less boss floor named by act',els.mname.textContent==='Страж Входа в Хаос');
+ok('rage meter lives in the battle dock',/<section id="dock">[\s\S]*id="rage"[\s\S]*<\/section>/.test(fs.readFileSync(ROOT+'/index.html','utf8'))&&css3.includes('#rage{'));}
+{const bg=f=>{run('S.floor='+f+';spawn()');return els.monster.style.backgroundImage||''};
+ok('act I monster sprite',bg(7)==='url(img/act1_mob.webp)'&&els.monster.textContent==='');
+ok('named bosses use their own sprites',bg(50)==='url(img/boss_0050.webp)'&&bg(250)==='url(img/boss_0250.webp)'&&bg(500)==='url(img/boss_0500.webp)');
+ok('Alecto (100) has her sprite',bg(100)==='url(img/boss_0100.webp)');ok('boss without art (Theseus, 1000) falls back to the act monster/emoji',bg(1000)==='');
+ok('generic guard uses the act monster',bg(30)==='url(img/act1_mob.webp)');
+ok('act without art keeps the emoji',bg(601)===''&&els.monster.textContent!=='');
+ok('every referenced sprite file exists',run('Object.values(SPR.mob).concat(Object.values(SPR.boss))').every(n=>fs.existsSync(ROOT+'/img/'+n+'.webp')));}
+{const src=fs.readFileSync(ROOT+'/game.js','utf8');
+ok('monster is no longer faded out between kills',!src.includes("classList.add('gone')")&&src.includes('killFx(isBoss(f))'));
+reset();run('S.floor=5;spawn();kfxT=-1e9');run('dealt(1e30,false,0,0)');const t1=run('kfxT');run('dealt(1e30,false,0,0)');ok('kill flash throttled to once per 0.3 s',t1>-1e9&&run('kfxT')===t1);}
+{const css4=fs.readFileSync(ROOT+'/style.css','utf8');
+reset();run('S.floor=777;spawn()');ok('act II arena wired',els.arena.dataset.act===1&&css4.includes('url(img/act2_bg.webp)')&&fs.existsSync(ROOT+'/img/act2_bg.webp'));}
+{
+// ---------- English ----------
+const cyr=/[а-яё]/i;
+reset();run('setTexts("en")');run('S.floor=7;spawn()');
+ok('EN: monster, floor and act names',els.mname.textContent==='Shade of Tartarus'&&els.floor.textContent.startsWith('Floor 7')&&els.act.textContent==='Tartarus');
+run('S.floor=50;spawn()');ok('EN: boss name',els.mname.textContent==='Megaera');
+run('S.floor=7520;spawn()');ok('EN: guardian name',els.mname.textContent==='Guardian of the Gates of Chaos');
+run('S.floor=10;spawn()');ok('EN: boss timer',/\d s$/.test(els.timer.textContent));
+run('S.max=500;S.souls=1e6;S.inv=[{s:0,r:3},{s:1,r:0},{s:1,r:0},{s:1,r:0}];S.loot=[]');
+const leak=[];['hero','gods','inv','house','quest','rew','pres','top'].forEach(tb=>{run(`tab="${tb}";tabRender()`);if(cyr.test(els.list.innerHTML))leak.push(tb+': '+els.list.innerHTML.match(/.{0,25}[а-яё].{0,25}/i)[0])});
+ok('EN: no Russian text in any tab'+(leak.length?' -> '+leak.join(' | '):''),leak.length===0);
+run('draw()');const ui=['bHermes','bChest','bRetry','bSave','timer','floor','mname','dpsu'].map(i=>els[i].textContent).join('|');
+ok('EN: battle screen buttons and labels in English'+(cyr.test(ui)?' -> '+ui:''),!cyr.test(ui));
+run('skUI()');ok('EN: skill buttons in English',![...els.skills.children].some(b=>cyr.test(b.title)||cyr.test(b.innerHTML)));
+run('tab="hero";htab="s";tabRender()');ok('EN: hero skills sub-tab in English',!cyr.test(els.list.innerHTML));run('htab="w"');
+els.modal.hidden=true;run('openCfg()');ok('EN: settings popup',!cyr.test(els.mbox.innerHTML.replace(/RU/,''))&&els.mbox.innerHTML.includes('Language'));
+run('S.g[0]=10;S.last=NOW()-7200e3;offline()');ok('EN: offline popup',!cyr.test(els.mbox.innerHTML)&&els.mbox.innerHTML.includes('While you were away'));
+run('S.loot=[{s:2,r:4}];claimLoot()');ok('EN: loot popup',!cyr.test(els.mbox.innerHTML)&&els.mbox.innerHTML.includes('Weapon · Mythic'));
+run('S.inv=[];for(let i=0;i<3;i++)S.inv.push({s:0,r:0});craftAll()');ok('EN: merge popup',!cyr.test(els.mbox.innerHTML));
+run('S.max=250;openAc(1)');ok('EN: chest popup',!cyr.test(els.mbox.innerHTML));
+run('S.floor=10000;spawn();kill()');ok('EN: final victory popup',els.mbox.innerHTML.includes('Chaos is defeated'));
+run('setLang("en")');ok('setLang stores the choice and re-renders',run('S.lang')==='en'&&run('LANG')==='en');
+run('setLang("ru")');ok('switch back to Russian',run('LANG')==='ru'&&run('S.lang')==='ru');run('S.lang=""');els.modal.hidden=true;
+// ---------- language detection ----------
+const nav=ctx.navigator;
+ctx.navigator={language:'de-DE'};ok('language: German browser -> English',run('pfLang()')==='en');
+ctx.navigator={language:'uk-UA'};ok('language: Ukrainian browser -> Russian',run('pfLang()')==='ru');
+ctx.navigator={language:'ru'};ok('language: Russian browser -> Russian',run('pfLang()')==='ru');
+run('PF.kind="cg";PF.sdk={user:{systemInfo:{locale:"en-US"}}}');ok('language: CrazyGames locale wins over the browser',run('pfLang()')==='en');
+run('PF.kind="local";PF.sdk=null');ctx.navigator=nav;
+// ---------- CrazyGames platform (mocked SDK) ----------
+ctx.__cg={calls:[],data:{},mute:false,next:null};
+run(`PF.kind='cg';PF.noAds=false;PF.adblock=false;PF.sdk={
+ ad:{requestAd:(type,cb)=>{__cg.calls.push('ad:'+type);const n=__cg.next;if(n==='ok'){cb.adStarted();__cg.calls.push('paused:'+paused);cb.adFinished()}else if(n){cb.adError({code:n})}}},
+ game:{gameplayStart:()=>__cg.calls.push('gpStart'),gameplayStop:()=>__cg.calls.push('gpStop'),happytime:()=>__cg.calls.push('happy'),get settings(){return{muteAudio:__cg.mute}}},
+ data:{setItem:(k,v)=>{__cg.data[k]=v},getItem:k=>__cg.data[k]||null}}`);
+reset();run('PF.kind="cg"');ctx.__cg.next='ok';const nec0=run('S.nec');let got=0;ctx.__got=()=>got++;
+run('rewarded(()=>__got())');
+ok('CG rewarded: ad requested, game paused during the ad, reward after adFinished',got===1&&run('S.nec')===nec0+1&&ctx.__cg.calls.includes('ad:rewarded')&&ctx.__cg.calls.includes('paused:true')&&run('paused')===false);
+ok('CG rewarded: gameplay stop/start around the ad',ctx.__cg.calls.includes('gpStop')&&ctx.__cg.calls.lastIndexOf('gpStart')>ctx.__cg.calls.indexOf('gpStop'));
+ok('CG rewarded: UI blocker hidden again',els.adwait.hidden===true);
+ctx.__cg.next='unfilled';got=0;run('rewarded(()=>__got())');ok('CG unfilled: no reward, ads stay enabled, toast shown',got===0&&run('PF.noAds')===false&&els.toast.textContent.length>0);
+ctx.__cg.next='adsDisabledBasicLaunch';run('rewarded(()=>__got())');ok('CG basic launch: no reward, ads switched off',got===0&&run('PF.noAds')===true&&run('adsOff()')===true);
+ctx.__cg.calls=[];run('rewarded(()=>__got())');ok('CG ads off: no further ad requests, message instead',ctx.__cg.calls.length===0&&got===0);
+run('tab="rew";tabRender()');const rw=els.list.innerHTML;
+ok('CG ads off: rewards tab explains and disables video buttons',rw.includes('Награды можно получить за Нектар')&&/disabled onclick="openAc\(0\)"/.test(rw)&&/disabled onclick="hermesAd\(\)"/.test(rw));
+ok('CG: no real-money Nectar packs',!rw.includes('buyPack('));
+run('S.g[0]=10;S.last=NOW()-7200e3;offline()');ok('CG ads off: offline popup has no x2 video button',!els.mbox.innerHTML.includes('o2'));els.modal.hidden=true;
+run('S.q=null;for(let i=0;i<30;i++){S.q=null;qn();if(S.q.p.some(qi=>QD[qi][1]=="a"))throw 1}');ok('CG ads off: no "watch videos" daily quests',true);
+run('PF.noAds=false;PF.adblock=true;tab="rew";tabRender()');ok('CG adblock: inline notice, not a popup',els.list.innerHTML.includes('блокировщик')&&els.modal.hidden===true);
+run('PF.adblock=false');ctx.__cg.calls=[];ctx.__cg.next='ok';
+run('S.adT=0');let dn=0;ctx.__dn=()=>dn++;run('interstitial(()=>__dn())');ok('CG midgame: requested and game continues after it',ctx.__cg.calls.includes('ad:midgame')&&dn===1);
+ctx.__cg.calls=[];run('interstitial(()=>__dn())');ok('CG midgame: not more often than every 4 min',!ctx.__cg.calls.includes('ad:midgame')&&dn===2);
+ctx.__cg.next='unfilled';run('S.adT=0;interstitial(()=>__dn())');ok('CG midgame error: game continues',dn===3);
+run('save(true)');ok('CG save goes to the Data module',typeof ctx.__cg.data.hades==='string'&&JSON.parse(ctx.__cg.data.hades).floor>=1);
+ctx.__cg.data.hades=JSON.stringify(Object.assign(JSON.parse(ctx.__cg.data.hades),{floor:4321}));await run('load()');ok('CG load reads the Data module',run('S.floor')===4321);
+ctx.__cg.mute=true;ok('CG muteAudio overrides the game sound',run('snd()')===false&&run('sound')===true);ctx.__cg.mute=false;ok('CG unmuted -> sound on',run('snd()')===true);
+ctx.__cg.calls=[];reset();run('PF.kind="cg";S.floor=500;spawn();dealt(1e300,false,0,0)');ok('CG happytime after an act boss',ctx.__cg.calls.includes('happy'));
+run('tab="rew";tabRender()');ok('CG: Hermes boost and Charon chest live in the Rewards tab',els.list.innerHTML.includes('hermesAd()')&&els.list.innerHTML.includes('chestAd()'));
+run('PF.kind="local";PF.sdk=null;PF.noAds=false;PF.adblock=false');
+const css5=fs.readFileSync(ROOT+'/style.css','utf8'),htm5=fs.readFileSync(ROOT+'/index.html','utf8');
+ok('CG: battle-screen video buttons hidden by CSS',css5.includes('body.pf-cg #bHermes,body.pf-cg #bChest,body.pf-cg #bSave{display:none}'));
+ok('landscape layout: arena | upgrades | section rail on wide screens',css5.includes('@media (min-aspect-ratio:5/4)')&&css5.includes('"arena panel nav"')&&css5.includes('"dock panel nav"'));
+ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
+}
+{
+// ---------- effects ----------
+reset();run('S.floor=5;spawn()');run('burst(100,80,9,["#fff"],60)');ok('sparks: particle pool created (48)',run('pts.length')===48&&els.fx.children.length>=48);
+const p0=run('pti');run('burst(100,80,5,["#fff"],40)');ok('sparks: pool index advances',run('pti')===p0+5);
+run('burst(NaN,80,5,["#fff"],40)');ok('sparks: bad coords ignored',run('pti')===p0+5);
+run('S.floor=50;spawn()');ok('boss entrance banner: Megaera',els.bossban.textContent==='БОСС · Мегера');
+// ---------- feats ----------
+reset();run('S.st={};S.achN={};S.ach={};S.nec=0');ok('feats: 24 defined, each with a description',run('ACH.length')===24&&run('ACH.every(a=>ACHD[a[0]])'));
+run('S.floor=5;spawn();dealt(1e30,false,0,0)');ok('lifetime kill counter',run('S.st.k')===1);
+run('achCheck()');ok('feat unlocked + toast',run('S.achN.k1')===1&&els.toast.textContent.includes('Первая кровь'));
+ok('nav badge counts claimable feats',run('achLbl()')==='Подвиги'&&run('achReady()')===1);
+run('achClaim("k1")');ok('claim gives Nectar once',run('S.nec')===1&&run('S.ach.k1')===1);run('achClaim("k1")');ok('no double claim',run('S.nec')===1);
+run('achClaim("k4")');ok('cannot claim a locked feat',run('S.nec')===1);
+run('S.max=500;achCheck()');ok('Hydra feat at floor 500 (+ floor 100)',run('S.achN.f2')===1&&run('S.achN.f1')===1&&!run('S.achN.f3'));
+run('S.st.c=999;achCheck()');ok('1000 clicks not yet',!run('S.achN.c1'));run('S.st.c=1000;achCheck()');ok('1000 clicks feat',run('S.achN.c1')===1);
+run('S.eq=[4,-1,-1,-1,-1,-1];achCheck()');ok('mythic equipped feat',run('S.achN.i1')===1);
+reset();run('S.st={};S.achN={};S.floor=10000;spawn();kill()');run('achCheck()');ok('final escape feat after Absolute Chaos',run('S.achN.f7')===1);els.modal.hidden=true;
+reset();els.toast.textContent='';run('S.achN={};S.ach={};S.st={k:5000,b:60};S.max=1200;achCheck(true)');ok('silent pass: unlocked without a toast',run('S.achN.k2')===1&&run('S.achN.b2')===1&&els.toast.textContent==='');
+run('tab="top";tabRender()');const th=els.list.innerHTML;ok('feats tab: counter, claim buttons, ready ones first',th.includes('Подвиги: 0 / 24')&&th.indexOf('achClaim')<th.indexOf('🔒'));
+ok('feats tab keeps the leaderboard row outside CrazyGames',th.includes('showLB()'));
+run('PF.kind="cg";tabRender()');ok('CG: feats tab without the leaderboard',!els.list.innerHTML.includes('showLB()')&&els.list.innerHTML.includes('achClaim'));run('PF.kind="local"');
+reset();run('S.st={};S.achN={};S.pc=0;S.run=100;S.max=100;S.pt=0;prestige();achCheck()');ok('prestige counter + first rebirth feat',run('S.pc')===1&&run('S.achN.p1')===1);
+run('setTexts("en");tab="top";tabRender()');ok('feats in English',!/[а-яё]/i.test(els.list.innerHTML)&&run('achLbl()')==='Feats');run('setTexts("ru")');
+// ---------- tips ----------
+reset();run('S.tut=0;S.st={};S.gold=0;S.w[0]=1;S.g=S.g.map(()=>0);S.floor=1;spawn();tipUI()');ok('tip 1: tap the monster',els.tip.hidden===false&&els.tipt.textContent.includes('Нажимайте'));
+run('S.st.c=10;tipUI()');ok('tip 2 waits until there is gold for an upgrade',els.tip.hidden===true&&run('S.tut')===1);
+run('S.gold=20;tipUI()');ok('tip 2: upgrade the sword',els.tipt.textContent.includes('Меч Стикса'));
+run('S.w[0]=2;S.gold=40;tipUI()');ok('tip 3: hire a god',els.tipt.textContent.includes('бога'));
+run('S.g[0]=1;S.floor=9;tipUI()');ok('tip 4: boss every 10 floors',els.tipt.textContent.includes('босс'));
+run('S.max=11;tipUI()');ok('tip 4 done after the first boss',run('S.tut')===4);
+run('tipOff()');ok('close hides all tips for good',run('S.tut')===99&&els.tip.hidden===true);run('tipUI()');ok('stays hidden',els.tip.hidden===true);
+}
+{
+// ---------- audio engine ----------
+run('AUD=null;A=null;sound=true;paused=false;S.vol=[.7,.3]');ok('audio graph builds (master, buses, reverb, compressor, noise)',run('audInit()')===true&&run('!!(A.master&&A.sfx&&A.mus&&A.rev&&A.comp&&A.noise)'));
+let pt2=5e7;ctx.performance.now=()=>(pt2+=1000);
+const cnt=()=>(ctx.__osc||0)+(ctx.__src||0);
+const keys=['click','crit','kill','boss','buy','lose','reward','bossIn','fairy','skill'];
+ok('every sound effect produces sound',keys.every(k=>{const c0=cnt();run(`sfx("${k}")`);return cnt()>c0}));
+ctx.performance.now=()=>pt2;const c1=cnt();run('sfx("click")');const c2=cnt();run('sfx("click")');ok('fast repeated clicks are rate-limited',c2>c1&&cnt()===c2);
+pt2+=1000;run('S.vol=[0,.3]');const c3=cnt();run('sfx("click")');ok('effects slider at 0 -> no sound',cnt()===c3);run('S.vol=[.7,.3]');
+reset();run('mus.t=0;mus.bar=0;S.floor=5;spawn()');const c4=cnt();run('musTick()');ok('music: schedules a bar ahead',cnt()>c4&&run('mus.t')>0&&run('mus.bar')>=1);
+const c5=cnt();run('musTick()');ok('music: does not re-schedule the same time window',cnt()===c5);
+run('mus.t=0;mus.bar=2');const c6=cnt();run('musBar(0)');ok('music: every 8th bar the melody rests (pad only)',cnt()-c6===6);
+run('S.floor=10;spawn();mus.bar=0');const c7=cnt();run('musBar(0)');const boss=cnt()-c7;run('S.farm=true;S.floor=9;spawn();mus.bar=0');const c8=cnt();run('musBar(0)');ok('music: boss fight adds a heartbeat',boss-(cnt()-c8)===8);run('S.farm=false');
+ok('music: each act has its own mode',run('MODES.length')===6&&run('new Set(MODES.map(m=>m[1].join())).size')>=5);
+run('pause(true)');ok('pause mutes the master bus',run('paused')===true);run('pause(false)');
+run('AUD.state="running";audVis(true)');ok('hidden tab suspends audio',run('AUD.state')==='suspended');run('audVis(false)');ok('visible tab resumes audio',run('AUD.state')==='running');
+run('setVol(1,0)');ok('music slider updates and saves',run('S.vol[1]')===0);run('setVol(1,30)');
 }
 ['hero','gods','inv','house','quest','rew','pres','top'].forEach(t=>{run(`tab="${t}";tabRender()`);ok('render '+t,els.list.innerHTML.length>20)});
 ok('hp finite at 10000',isFinite(run('mHP(10000)')));
