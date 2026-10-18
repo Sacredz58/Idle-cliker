@@ -20,10 +20,14 @@ import sys
 ya, cg = sys.argv[1:3]
 p = 'dist/crazygames/index.html'
 h = open(p, encoding='utf-8').read().replace(ya, cg)
-h = h.replace('<html lang="ru">', '<html lang="en">').replace('<title>Подземелье Аида: Побег</title>', '<title>Underworld Escape</title>')
+h = h.replace('<html lang="ru" ', '<html lang="en" ').replace('<title>Подземелье Аида: Побег</title>', '<title>Underworld Escape</title>')
 open(p, 'w', encoding='utf-8').write(h)
 PY
+# реклама CrazyGames: по умолчанию выключена (Basic Launch); для Full Launch — CG_ADS=1 bash build.sh
+grep -q "const CG_ADS=false" dist/crazygames/game.js
+if [ "${CG_ADS:-0}" = "1" ]; then sed -i 's/const CG_ADS=false/const CG_ADS=true/' dist/crazygames/game.js; grep -q "const CG_ADS=true" dist/crazygames/game.js; echo "CrazyGames: реклама ВКЛЮЧЕНА (Full Launch)"; else echo "CrazyGames: реклама выключена (Basic Launch)"; fi
 grep -qF "$CG_SDK" dist/crazygames/index.html
+grep -qF '<html lang="en" translate="no"' dist/crazygames/index.html
 ! grep -q "yandex.ru" dist/crazygames/index.html
 
 (cd dist/yandex && zip -qr ../../build/yandex-games.zip .)

@@ -25,7 +25,7 @@ run('equip(1,0)');run("S.inv.push({s:0,r:0});equip(0,0)");ok('swap returns old i
 // house
 run('S.max=100;S.gold=1e15');const cd=run('clickD()');run('build(0)');ok('build started, gold spent',run('S.b[0][1]')>0&&run("S.gold")<1e15);
 run('tab="house";tabRender()');ok('house renders',els.list.innerHTML.includes('Кузница'));
-simNow+=31e3;run('hTick()');ok('building done after 30s real time',run('S.b[0][0]')===1&&run('clickD()')>cd);
+simNow+=181e3;run('hTick()');ok('building done after 180s real time',run('S.b[0][0]')===1&&run('clickD()')>cd);
 // daily
 const g=run('S.gold');run('dClaim()');ok('daily claim',run('S.gold')>g&&run('S.day')===1);const g2=run('S.gold');run('dClaim()');ok('no double claim',run('S.gold')===g2);
 simNow+=864e5;run('dClaim()');ok('streak continues day2',run('S.day')===2);
@@ -110,21 +110,36 @@ simNow+=31e3;run('draw()');ok('skill ready after 30s',els.skills.children[0].dis
 reset();run('S.max=500;S.floor=5;spawn()');const cd0=run('clickD()');run('useSk(3)');ok('Icarus x3 click dmg',Math.abs(run('clickD()')/cd0-3)<1e-9);
 simNow+=11e3;ok('Icarus buff expires',Math.abs(run('clickD()')/cd0-1)<1e-9);
 reset();run('S.max=500;S.floor=5;spawn()');ok('no auto-dps before skill',run('dps()')===0);run('useSk(1)');ok('Athena throw adds autoclicks',run('dps()')>0);simNow+=9e3;ok('Athena throw ends',run('dps()')===0);
-reset();run('S.max=500;S.floor=5;spawn()');run('useSk(2)');ok('Shield needs boss fight',run('S.sc[2]')===0);
-run('S.floor=10;spawn()');run('useSk(2)');ok('Shield +10s boss timer',Math.abs(run('bossT')-40)<1e-9);
-reset();run('S.g[0]=9');const p9=run('pt(0)');run('S.g[0]=10');const p10=run('pt(0)');run('S.g[0]=50');ok('passive tiers 0/1/2',p9===0&&p10===1&&run('pt(0)')===2);
-raf(0);reset();run('S.g[0]=10;S.floor=15;spawn();zt=7.9');raf(250);const dz=run('maxhp-hp');ok('Zeus lightning strikes after 8s',dz>=380&&dz<=440&&run('zt')===0);raf(0);
+reset();run('S.max=500;S.floor=5;S.g[0]=10;spawn()');const dv0=run('dps()'),vn=simNow;run('useSk(2)');ok('Chaos Vortex works outside boss fights and triples gods DPS',dv0>0&&run('S.sc[2]')>0&&Math.abs(run('dps()')-dv0*3)<dv0*1e-9);
+simNow+=11e3;ok('Chaos Vortex lasts 10 s, cooldown 60 s',Math.abs(run('dps()')-dv0)<dv0*1e-9&&Math.abs(run('S.se[2]')-vn-10000)<1e-6&&Math.abs(run('S.sc[2]')-vn-60000)<1e-6);
+reset();run('S.g[0]=49');const p9=run('pt(0)');run('S.g[0]=50');const p10=run('pt(0)');run('S.g[0]=199');const p199=run('pt(0)');run('S.g[0]=200');ok('passive tiers: ×1 from lv.50, ×2 from lv.200',p9===0&&p10===1&&p199===1&&run('pt(0)')===2);
+raf(0);reset();run('S.g[0]=50;S.floor=300;spawn();zt=7.9');const zd=run('dps()');raf(250);const dz=run('maxhp-hp');ok('Zeus lightning strikes after 8s',dz>=zd*10&&dz<=zd*10.5&&run('zt')===0);raf(0);
 const gk=()=>{run('S.floor=1;S.gold=0;spawn()');run('dealt(1e30,false,0,0)');return run('S.gold')};
-reset();const g0=gk();run('S.g[1]=10');ok('Poseidon +30% gold',Math.abs(gk()/g0-1.3)<1e-9);
-reset();const c1=run('clickD()');run('S.g[2]=10');ok('Ares +25% click',Math.abs(run('clickD()')/c1-1.25)<1e-9);
-reset();run('S.floor=5;S.g[3]=10;spawn()');ok('Aphrodite -10% monster hp',Math.abs(run('maxhp/mHP(5)')-.18)<1e-9);
+reset();const g0=gk();run('S.g[1]=50');ok('Poseidon +30% gold',Math.abs(gk()/g0-1.3)<1e-9);
+reset();const c1=run('clickD()');run('S.g[2]=50');ok('Ares +25% click',Math.abs(run('clickD()')/c1-1.25)<1e-9);
+reset();run('S.floor=5;S.g[3]=50;spawn()');ok('Aphrodite -10% monster hp',Math.abs(run('maxhp/mHP(5)')-.18)<1e-9);
 reset();run('S.floor=5;spawn()');M.random=()=>.2;let h0=run('hp');pd({timeStamp:2e7});const d0=h0-run('hp');
-reset();run('S.floor=5;S.g[4]=10;spawn()');h0=run('hp');pd({timeStamp:2e7+9e3});const d1=h0-run('hp');M.random=mr;
+reset();run('S.floor=5;S.g[4]=50;spawn()');h0=run('hp');pd({timeStamp:2e7+9e3});const d1=h0-run('hp');M.random=mr;
 ok('Apollo raises crit chance (0.2 roll crits only with passive)',Math.abs(d1/d0-3)<1e-6);
-reset();run('S.floor=5;S.g[5]=10;spawn();rage=0');for(let i=0;i<9;i++)pd({timeStamp:3e7+i*150});ok('Hermes passive: rage from 9 clicks',run('rage')>0);
+reset();run('S.floor=5;S.g[5]=50;spawn();rage=0');for(let i=0;i<9;i++)pd({timeStamp:3e7+i*150});ok('Hermes passive: rage from 9 clicks',run('rage')>0);
 reset();run('S.floor=5;spawn();rage=0');for(let i=0;i<9;i++)pd({timeStamp:4e7+i*150});ok('no rage from 9 clicks without passive',run('rage')===0);run('rage=0');
-reset();run('S.g[6]=10;S.floor=10;spawn();dealt(1e30,false,0,0)');ok('Demeter: 2 items from boss',run('S.loot.length')===2);
-reset();run('S.g[7]=10;S.floor=10;spawn()');ok('Athena passive: boss timer 40',run('bossT')===40);
+reset();run('S.g[14]=50;S.floor=10;spawn();dealt(1e30,false,0,0)');ok('Hypnos: 2 items from boss',run('S.loot.length')===2);
+reset();run('S.g[7]=50;S.floor=10;spawn()');ok('Athena passive: boss timer 40',run('bossT')===40);
+// passives of gods 9-18
+reset();run('S.b=[[0,0],[0,0],[0,0]]');const hA=run('hTime(0)');run('S.b[0][0]=6');const hB=run('hTime(0)');run('S.b[0][0]=30');ok('build time: 180 s ×1.5 per level, capped at 6 h',hA===180&&Math.abs(hB-180*1.5**6)<1e-9&&run('hTime(0)')===21600);
+reset();run('S.b=[[3,0],[0,0],[0,0]]');const ht0=run('hTime(0)');run('S.g[8]=50');ok('Hephaestus: buildings 25% faster',Math.abs(run('hTime(0)')/ht0-.75)<1e-9);
+reset();run('S.g[0]=10');const gd0=run('dps()');run('S.g[9]=50');const gd1=run('dps()')-run('GODS[9][1]*50*mult(50)*boost()*bld(2)*T(2)*1.25');ok('Dionysus: +25% gods damage',Math.abs(gd1/gd0-1.25)<1e-6);
+reset();run('S.floor=10;spawn()');const bh0=run('maxhp');run('S.g[10]=50;spawn()');ok('Artemis: bosses 10% weaker (monsters unchanged)',Math.abs(run('maxhp')/bh0-.9)<1e-9&&(run('S.floor=11;spawn()'),Math.abs(run('maxhp/mHP(11)')-.2)<1e-9));
+reset();run('S.g[0]=100;S.last=NOW()-36e5;S.gold=0;offline();$("o1").onclick()');const og0=run('S.gold');run('S.g[11]=50;S.last=NOW()-36e5;S.gold=0;offline();$("o1").onclick()');const od=run('dps()*3600*.05');ok('Nyx: +50% offline income',og0>0&&Math.abs(run('S.gold')-od*1.5)<od*1e-6&&Math.abs(og0-run('S.g[11]=0;dps()*3600*.05'))<og0*1e-6);
+reset();run('S.run=500;S.sf=0');const sg0=run('soulGain()');run('S.g[12]=200');ok('Hecate: +10%/+20% souls',run('soulGain()')===Math.floor(sg0*1.2));
+reset();run('S.floor=5;spawn()');M.random=()=>.05;let th0=run('hp');pd({timeStamp:8e7});const tc0=th0-run('hp');reset();run('S.floor=5;S.g[13]=50;spawn()');th0=run('hp');pd({timeStamp:8e7+9e3});const tc1=th0-run('hp');M.random=mr;ok('Thanatos: +1 crit multiplier (×3 → ×4)',Math.abs(tc1/tc0-4/3)<1e-6);
+reset();run('S.max=500;S.g[6]=50;S.g[16]=50');const sn=simNow;run('useSk(3)');ok('Demeter +20% skill duration, Erebus −10% cooldown',Math.abs(run('S.se[3]')-sn-10000*1.2)<1e-6&&Math.abs(run('S.sc[3]')-sn-60000*.9)<1e-6);
+reset();run('S.floor=100;S.inv=[]');M.random=()=>.22;run('drop()');const dr0=run('S.inv[0].r');run('S.g[15]=50;S.inv=[]');run('drop()');M.random=mr;ok('Moirai: rarer drops',dr0===0&&run('S.inv[0].r')===1);
+reset();const ec=run('clickD()');run('S.g[17]=50');ok('Aether: +20% click damage',Math.abs(run('clickD()')/ec-1.2)<1e-9);
+ok('all 18 gods have a passive',run('PS.length')===18&&run('GODS.length')===18);
+run('tab="gods";tabRender()');ok('passive text says lv.50 / ×2 at lv.200',els.list.innerHTML.includes('с ур.50, ×2 с ур.200'));
+// fairy reward toast uses the fairy picture
+reset();run('fairySpawn();fairyTap()');ok('fairy toast shows the fairy image',els.toast.innerHTML.includes('img/icons/fairy_t.webp')&&!els.toast.innerHTML.includes('🧚'));
 run('tab="gods";tabRender()');ok('gods tab shows passives',els.list.innerHTML.includes('Пассив «Молния»'));
 run('tab="hero";htab="w";tabRender()');ok('hero tab: weapons by default with sub-tabs',els.list.innerHTML.includes('Меч Стикса')&&els.list.innerHTML.includes('setHT(')&&!els.list.innerHTML.includes('buySk('));
 run('setHT("s")');ok('hero tab shows hero skills with unlock floors',els.list.innerHTML.includes('Удар Стикса')&&els.list.innerHTML.includes('откроется на этаже 10'));
@@ -142,7 +157,7 @@ const hit=(setup,rnd)=>{reset();run(setup);M.random=()=>rnd;const h=run('hp');pd
 const a1=hit('S.floor=5;spawn()',.05),a2=hit('S.floor=5;S.t[3]=5;spawn()',.05);ok('crit damage talent (x3 -> x4 at lvl5)',Math.abs(a2/a1-4/3)<1e-9);
 const b1=hit('S.floor=5;spawn()',.105),b2=hit('S.floor=5;S.t[4]=1;spawn()',.105);ok('crit chance talent +1%',Math.abs(b2/b1-3)<1e-9);M.random=mr;
 reset();run('S.t[5]=10;S.max=500;S.floor=5;spawn();useSk(3)');ok('mastery doubles Icarus duration',Math.abs(run('S.se[3]')-simNow-20000)<1);
-reset();run('S.t[5]=10;S.max=500;S.floor=10;spawn();useSk(2)');ok('mastery boosts Shield seconds',Math.abs(run('bossT')-50)<1e-9);
+reset();run('S.t[5]=10;S.max=500;S.floor=10;spawn()');const v0=simNow;run('useSk(2)');ok('mastery extends Chaos Vortex',Math.abs(run('S.se[2]')-v0-10000*2)<1e-6);
 reset();run('S.t[5]=10;S.max=500;S.floor=15;spawn();useSk(0)');const hs=run('maxhp-hp');reset();run('S.max=500;S.floor=15;spawn();useSk(0)');ok('mastery doubles Styx hit',Math.abs(hs/run('maxhp-hp')-2)<1e-6);
 reset();run('S.t[6]=10;S.max=500;S.floor=15;spawn();useSk(0)');ok('Chronos echo: cooldown -30%',Math.abs(run('S.sc[0]')-simNow-21000)<1);
 reset();run('S.g[0]=10;S.t[7]=2;S.last=Date.now()-20*3600e3;S.gold=0;offline()');els.o1.onclick();ok('offline cap +1h from talent',Math.abs(run('S.gold')-40*9*3600*.05)<1);
@@ -169,7 +184,8 @@ run('openAc(2)');ok('silver chest: 2 items >= rare, 3h',run('S.inv.length')===3&
 run('openAc(3)');ok('gold chest: 3 items >= epic, souls, 8h',run('S.inv.length')===6&&run('S.inv.slice(3).every(x=>x.r>=2)')&&run('S.souls')===3&&run('S.tot')===3&&run('S.ac[3]')-n2===288e5);
 reset();run('S.ac=[1,2,3,4];S.run=100;S.max=100;prestige()');ok('chest cooldowns survive prestige',run('S.ac.join()')==='1,2,3,4');
 reset();run('S.max=250;tab="rew";tabRender()');const hh=els.list.innerHTML;ok('rewards tab lists ad reward + 3 chests',hh.includes('Награда за видео')&&hh.includes('Бронзовый сундук')&&hh.includes('Серебряный сундук')&&hh.includes('Золотой сундук')&&hh.includes('10:00')&&hh.includes('class="it c1"')&&hh.includes('#i-chest')&&!/[📺🪵🥈🥇🍯]/u.test(hh));
-run('openAc(0)');ok('after opening button shows cooldown',els.list.innerHTML.includes('перезарядка</span>'));run('hTick()');
+run('openAc(0)');ok('rewards shop has no «finish buildings» (it lives in the House tab)',!els.list.innerHTML.includes('buyShop(4)')&&!els.list.innerHTML.includes('Достроить все здания'));
+ok('after opening button shows cooldown',els.list.innerHTML.includes('перезарядка</span>'));run('hTick()');
 const o2=JSON.parse(run('JSON.stringify(S0())'));delete o2.ac;ls.hades=JSON.stringify(o2);await run('load()');ok('old save without chests gets slots',run('S.ac.length')===4);
 }
 {
@@ -206,6 +222,16 @@ run('hTick()');ok('quest tab refreshed on next tick',els.list.innerHTML!=='MARK'
 mark();els.list._h.pointerdown();run('dealt(1e30,false,0,0)');run('hTick()');ok('no re-render while pressed',els.list.innerHTML==='MARK');
 ctx.document._h.pointerup();run('hTick()');ok('no re-render right after release (click must land)',els.list.innerHTML==='MARK');
 simNow+=500;run('hTick()');ok('re-render after release + 400 ms',els.list.innerHTML!=='MARK');
+// прогресс заданий и подвигов обновляется на открытой вкладке не только от убийств
+simNow+=1000;run('tab="quest";qn();S.q.c=0;S.q.p[0]=QD.findIndex(q=>q[1]=="c");tabRender()');mark();pd({timeStamp:5e9});run('hTick()');ok('quest tab refreshes after a click (progress shown live)',els.list.innerHTML!=='MARK'&&els.list.innerHTML.includes('1/'));
+run('tab="quest";tabRender()');mark();run('S.gold=1e9;buy("w",0)');run('hTick()');ok('quest tab refreshes after an upgrade',els.list.innerHTML!=='MARK');
+run('tab="top";tabRender()');mark();pd({timeStamp:5e9+500});run('hTick()');ok('feats tab refreshes after a click',els.list.innerHTML!=='MARK');
+run('tab="hero";tabRender()');mark();pd({timeStamp:5e9+1000});run('hTick()');ok('hero tab still not re-rendered by clicks',els.list.innerHTML==='MARK');
+{// кнопка покупки: надпись меняется на месте, разметка кнопки не пересоздаётся (иначе клик теряется при смене этажа)
+const lvN={textContent:'+1 ур.'},prN={nodeValue:'15'},btn={dataset:{k:'w',i:'0'},children:[lvN,{lastChild:prN}],innerHTML:'ORIG',_k:'old',disabled:false,parentElement:null};
+const qsa=ctx.document.querySelectorAll;ctx.document.querySelectorAll=sel=>sel=='[data-k]'?[btn]:[];run('S.gold=1e12;BQ="max"');run('updBtns()');ctx.document.querySelectorAll=qsa;run('BQ=1');
+ok('buy button text updated in place (no re-created markup mid-click)',btn.innerHTML==='ORIG'&&/^\+\d+ ур\.$/.test(lvN.textContent)&&lvN.textContent!=='+1 ур.'&&prN.nodeValue!=='15');
+ok('clicks always land on the button itself (children ignore pointer)',fs.readFileSync(ROOT+'/style.css','utf8').includes('button *{pointer-events:none}'));}
 simNow+=4000;const l0=lsN;for(let i=0;i<20;i++)run('dealt(1e30,false,0,0)');ok('saving throttled: 20 kills -> 1 save',lsN-l0===1);
 simNow+=3100;run('dealt(1e30,false,0,0)');ok('next save after 3 s',lsN-l0===2);
 }
@@ -355,11 +381,20 @@ reset();run('S.floor=10;spawn();dealt(1e300,false,0,0)');let tapped=0;els.chest.
 ok('tap on the arena chest claims loot (does not count as an arena click)',tapped===1&&run('S.inv.length')===1&&run('S.loot.length')===0&&els.chest.hidden===true&&run('S.q.c')===0);
 ok('item bonus values raised for low rarities',run('RB.join()')==='0.3,0.7,1.4,2.2,4.5,9,20,45');
 reset();run('S.eq=[0,-1,-1,-1,-1,-1];tab="inv";tabRender()');{const ih=els.list.innerHTML;ok('inventory shows total item bonus',ih.includes('весь урон ×<em>1.30</em>'));
-ok('equipped slots: 6 tiles, worn one styled by rarity, empty ones marked',(ih.match(/class="slot/g)||[]).length===6&&(ih.match(/class="slot empty"/g)||[]).length===5&&ih.includes('class="it r0"')&&ih.includes('#i-helm'));}
+ok('equipped slots: 6 tiles, worn one styled by rarity, empty ones marked',(ih.match(/class="slot/g)||[]).length===6&&(ih.match(/class="slot empty"/g)||[]).length===5&&ih.includes('class="it pic r0"')&&ih.includes('img/icons/slot_1.webp')&&(ih.match(/class="it none pic"/g)||[]).length===5);}
 run('S.eq=[1,-1,-1,-1,-1,-1];S.inv=[{s:0,r:0},{s:0,r:2},{s:3,r:2},{s:3,r:2}];tabRender()');{const ih=els.list.innerHTML;
-ok('bag grouped by rarity with headers, tiles carry rarity class',(ih.match(/class="rh r/g)||[]).length===2&&ih.indexOf('class="rh r2"')<ih.indexOf('class="rh r0"')&&ih.includes('class="row itr r2"')&&ih.includes('#i-amulet'));
+ok('bag grouped by rarity with headers, tiles carry rarity class',(ih.match(/class="rh r/g)||[]).length===2&&ih.indexOf('class="rh r2"')<ih.indexOf('class="rh r0"')&&ih.includes('class="row itr r2"')&&ih.includes('img/icons/slot_4.webp'));
 ok('items better than the worn one are flagged, worse ones not',(ih.match(/лучше надетого/g)||[]).length===2&&ih.includes('синтез 2/5'));
 ok('rarity ladder shows merge costs',(ih.match(/class="gem r\d"/g)||[]).length===8);}
+// painted icons: every referenced picture exists
+{const fs=require('fs'),src=['game.js','style.css','index.html'].map(f=>fs.readFileSync(__dirname+'/../'+f,'utf8')).join('');const L=[...new Set((src.match(/img\/icons\/[a-z_0-9]+\.webp/g)||[]))].concat([1,2,3,4,5,6].map(i=>'img/icons/slot_'+i+'.webp'),[1,2,3,4].map(i=>'img/icons/skill_'+i+'.webp'));
+ok('all painted icons exist (slots, skills, currency, chest, fairy)',L.length>=18&&L.every(f=>fs.existsSync(__dirname+'/../'+f)));
+ok('skill dock, skill list, nectar card and loot chest use the pictures',/function skUI[\s\S]{0,900}img\/icons\/skill_/.test(src)&&/function skH[^\n]*img\/icons\/skill_/.test(src)&&/function shopH[^\n]*icon_nectar\.webp/.test(src)&&/id="chest"[^\n]*chest\.webp/.test(src)&&/id="fairy"[^\n]*fairy\.webp/.test(src));
+ok('currency marks are pictures everywhere',/i\.coin,\.buy i\.coin[^{]*\{background-image:url\(img\/icons\/coin_s\.webp\)/.test(src)&&/i\.soul,\.buy i\.soul[^{]*\{background-image/.test(src));}
+// house: «Достроить» finishes only the clicked building
+reset();run('S.nec=10;S.b=[[2,NOW()+6e5],[1,NOW()+6e5],[0,NOW()+6e5]];finB(1)');ok('finish button completes only that building for 3 nectar',run('S.b[1][1]')===0&&run('S.b[1][0]')===2&&run('S.b[0][1]')>0&&run('S.b[2][1]')>0&&run('S.nec')===7);
+run('S.nec=2;finB(0)');ok('finish needs 3 nectar',run('S.b[0][1]')>0&&run('S.nec')===2);
+run('navGo("house");tabRender()');ok('house finish buttons call finB per building',/onclick="finB\(0\)"/.test(els.list.innerHTML)&&/onclick="finB\(2\)"/.test(els.list.innerHTML));
 // skills: unlock by record floor, souls upgrades
 reset();run('S.max=9');const a9=run('skLv(0)');run('S.max=10');const a10=run('skLv(0)');run('S.sl[0]=2');ok('skill levels: locked below floor 10, auto level 1 at 10, +souls levels',a9===0&&a10===1&&run('skLv(0)')===3&&Math.abs(run('pw(0)')-1.45)<1e-9);
 reset();run('S.souls=100;S.max=1;buySk(0)');ok('cannot upgrade a locked skill',run('S.sl[0]')===0&&run('S.souls')===100);
@@ -374,8 +409,10 @@ reset();run('S.max=250;qn();S.q.p.forEach(qi=>{S.q[QD[qi][1]]=Math.max(S.q[QD[qi
 reset();run('S.day=6;S.dl=new Date(NOW()-864e5).toDateString()');run('dClaim()');ok('day 7 login: +10 nectar +5 souls',run('S.nec')===10&&run('S.souls')===5);
 reset();run('S.nec=1500;draw()');ok('nectar shown in the stats bar',els.nec.textContent==='1.50K');
 // shop
-reset();run('S.nec=10;S.max=250;S.inv=[]');dx2('help');run('buyShop(0)');ok('shop: bronze chest for nectar (no ad), cooldown starts',run('S.nec')===6&&run('S.inv.length')===1&&run('S.ac[1]')>simNow);
-run('buyShop(0)');ok('shop: chest on cooldown cannot be bought',run('S.nec')===6);
+reset();run('S.nec=10;S.max=250;S.inv=[]');dx2('help');run('buyShop(0)');ok('shop: bronze chest for nectar (no ad), no cooldown',run('S.nec')===6&&run('S.inv.length')===1&&run('S.ac[1]')===0);
+run('buyShop(0)');ok('shop: nectar chest can be bought again right away',run('S.nec')===2&&run('S.inv.length')===2);
+run('S.ac[1]=NOW()+1e6;S.nec=10;buyShop(0)');ok('shop chest ignores the ad-chest timer',run('S.nec')===6);
+run('tab="rew";tabRender()');ok('shop chests show no cooldown',!/class="buy nec" disabled[^>]*onclick="buyShop\(0\)"/.test(els.list.innerHTML));
 run('S.nec=3;buyShop(1)');ok('shop: not enough nectar -> nothing',run('S.nec')===3&&run('S.ac[2]')===0);
 reset();run('S.nec=10;S.pt='+simNow);run('buyShop(3)');ok('shop: prestige cooldown reset',run('S.pt')===0&&run('S.nec')===4);run('buyShop(3)');ok('no charge when no cooldown',run('S.nec')===4);
 reset();run('S.nec=10;S.b[0][1]=NOW()+1e6');run('buyShop(4)');ok('shop: finish buildings now',run('S.b[0][0]')===1&&run('S.b[0][1]')===0&&run('S.nec')===7);run('buyShop(4)');ok('no charge without building',run('S.nec')===7);
@@ -384,9 +421,12 @@ const kg=()=>{run('S.floor=1;S.gold=0;spawn()');run('dealt(1e30,false,0,0)');ret
 reset();const g1=kg();run('S.nec=20;buyShop(6)');const g2=kg();ok('shop: gold fever doubles kill gold',Math.abs(g2/g1-2)<1e-9&&run('S.nec')===8);
 reset();const c1=run('clickD()');run('S.nec=20;buyShop(7)');ok('shop: Hermes 1h doubles damage',Math.abs(run('clickD()')/c1-2)<1e-9&&run('S.hermes')>=simNow+36e5-1);
 // cosmetics
-reset();run('S.nec=25;buyCos(0,1)');ok('cosmetics: buy and wear a hero skin',run('S.own[0].includes(1)')&&run('S.skin')===1&&run('S.nec')===5&&els.hero.textContent==='🦸');
+reset();run('S.nec=25;buyCos(0,1)');ok('cosmetics off: buying does nothing',run('S.own[0].includes(1)')===false&&run('S.nec')===25);
+run('tab="rew";tabRender()');ok('cosmetics off: «Hero look» and «Arena theme» show a «not available yet» stub',(els.list.innerHTML.match(/class="row up shp dim cosoff"/g)||[]).length===2&&els.list.innerHTML.includes('Пока недоступно')&&!els.list.innerHTML.includes('buyCos('));
+run('S.skin=2;S.theme=3;applyCos()');ok('cosmetics off: default hero art and arena colour even with an old skin saved',els.hero.className==='img'&&els.app.style.background===run('THB[0]'));
+reset();run('COS_ON=true;S.nec=25;buyCos(0,1)');ok('cosmetics: buy and wear a hero skin',run('S.own[0].includes(1)')&&run('S.skin')===1&&run('S.nec')===5&&els.hero.textContent==='🦸');
 run('buyCos(0,2)');ok('cosmetics: not enough nectar',run('S.skin')===1&&run('S.nec')===5);run('buyCos(0,0)');ok('wear owned skin for free',run('S.skin')===0&&run('S.nec')===5);ok('skin 0 shows the hero picture, skin 1 an emoji',els.hero.className==='img'&&els.hero.textContent==='');run('buyCos(0,1)');ok('other skin replaces the picture',els.hero.className===''&&els.hero.textContent==='🦸');run('buyCos(0,0)');
-run('S.nec=30;buyCos(1,1)');ok('cosmetics: arena theme applied',run('S.theme')===1&&els.app.style.background===run('THB[1]'));
+run('S.nec=30;buyCos(1,1)');ok('cosmetics: arena theme applied',run('S.theme')===1&&els.app.style.background===run('THB[1]'));run('COS_ON=false;applyCos()');
 // payments
 els.modal.hidden=true;run('buyPack(0)');ok('packs outside Yandex: explanatory popup',els.modal.hidden===false&&els.mbox.innerHTML.includes('только в Яндекс Играх'));
 reset();run('S.nec=0;ysdk={getPayments:()=>Promise.resolve({purchase:o=>{__buy=o.id;return Promise.resolve({purchaseToken:"tok"})},consumePurchase(){__cons=1}})}');ctx.__buy='';ctx.__cons=0;run('buyPack(1)');await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));
@@ -417,7 +457,7 @@ ok('8 gifts with own icons and current effect',(ph.match(/class="row up tal/g)||
 run('S.t[6]=10;tabRender()');ok('Chronos gift shows −30% now',els.list.innerHTML.includes('Сейчас <em>−30%</em>'));
 run('S.b=[[2,0],[0,Date.now()+20e3],[0,0]];tab="house";tabRender()');{const hh=els.list.innerHTML;
 ok('house: 3 building cards with icons, bonus now → next',(hh.match(/class="row hb h\d"/g)||[]).length===3&&hh.includes('#i-anvil')&&hh.includes('Сейчас <em>+20%</em> → +30%'));
-ok('house: building in progress shows bar, timer and finish-for-nectar button',hh.includes('data-fb=')&&hh.includes('data-ft=')&&hh.includes('buyShop(4)')&&hh.includes('Построить'));}
+ok('house: building in progress shows bar, timer and finish-for-nectar button',hh.includes('data-fb=')&&hh.includes('data-ft=')&&hh.includes('finB(')&&!hh.includes('buyShop(4)')&&hh.includes('Построить'));}
 ok('startF never lands on a boss floor',[1,9,10,33,34,100,1000,5000,9999,10000].every(r=>{run(`S.run=${r}`);const f=run('startF()');return f>=1&&f%10!==0||f===1}));
 // fairy gold from income, not from record floor
 reset();run('S.g[0]=10;S.max=10');run('fairySpawn()');Mp.random=()=>0;run('S.gold=0;fairyTap()');const fg1=run('S.gold');
@@ -443,9 +483,13 @@ ok('rage meter lives in the battle dock',/<section id="dock">[\s\S]*id="rage"[\s
 {const bg=f=>{run('S.floor='+f+';spawn()');return els.monster.style.backgroundImage||''};
 ok('act I monster sprite',bg(7)==='url(img/act1_mob.webp)'&&els.monster.textContent==='');
 ok('named bosses use their own sprites',bg(50)==='url(img/boss_0050.webp)'&&bg(250)==='url(img/boss_0250.webp)'&&bg(500)==='url(img/boss_0500.webp)');
-ok('Alecto (100) has her sprite',bg(100)==='url(img/boss_0100.webp)');ok('boss without art (Theseus, 1000) falls back to the act monster/emoji',bg(1000)==='');
+ok('Alecto (100) has her sprite',bg(100)==='url(img/boss_0100.webp)');ok('boss without art (Theseus, 1000) falls back to the act II monster',bg(1000)==='url(img/act2_mob.webp)');
+ok('act II: monster and bosses 750 / 1500 / 2000 have sprites',bg(601)==='url(img/act2_mob.webp)'&&bg(750)==='url(img/boss_0750.webp)'&&bg(1500)==='url(img/boss_1500.webp)'&&bg(2000)==='url(img/boss_2000.webp)'&&els.monster.textContent==='');
 ok('generic guard uses the act monster',bg(30)==='url(img/act1_mob.webp)');
-ok('act without art keeps the emoji',bg(601)===''&&els.monster.textContent!=='');
+ok('act without art keeps the emoji',bg(4501)===''&&els.monster.textContent!=='');
+ok('act III: Shade of Elysium, Achilles 2500, Patroclus 3000, Lord Hades 4500 have sprites',bg(2286)==='url(img/act3_mob.webp)'&&bg(2500)==='url(img/boss_2500.webp)'&&bg(3000)==='url(img/boss_3000.webp)'&&bg(4500)==='url(img/boss_4500.webp)'&&bg(3500)==='url(img/act3_mob.webp)');
+ok('act III arena background',/#arena\[data-act="2"\][^}]*act3_bg\.webp/.test(fs.readFileSync(ROOT+'/style.css','utf8'))&&fs.existsSync(ROOT+'/img/act3_bg.webp'));
+ok('acts IV-VI arena backgrounds',(()=>{const c=fs.readFileSync(ROOT+'/style.css','utf8');return [3,4,5].every(i=>new RegExp('#arena\\[data-act="'+i+'"\\][^}]*act'+(i+1)+'_bg\\.webp').test(c)&&fs.existsSync(ROOT+'/img/act'+(i+1)+'_bg.webp'))})());
 ok('every referenced sprite file exists',run('Object.values(SPR.mob).concat(Object.values(SPR.boss))').every(n=>fs.existsSync(ROOT+'/img/'+n+'.webp')));}
 {const src=fs.readFileSync(ROOT+'/game.js','utf8');
 ok('monster is no longer faded out between kills',!src.includes("classList.add('gone')")&&src.includes('killFx(isBoss(f))'));
@@ -497,7 +541,14 @@ ctx.__cg.next='unfilled';got=0;run('rewarded(()=>__got())');ok('CG unfilled: no 
 ctx.__cg.next='adsDisabledBasicLaunch';run('rewarded(()=>__got())');ok('CG basic launch: no reward, ads switched off',got===0&&run('PF.noAds')===true&&run('adsOff()')===true);
 ctx.__cg.calls=[];run('rewarded(()=>__got())');ok('CG ads off: no further ad requests, message instead',ctx.__cg.calls.length===0&&got===0);
 run('tab="rew";tabRender()');const rw=els.list.innerHTML;
-ok('CG ads off: rewards tab explains and disables video buttons',rw.includes('Награды можно получить за Нектар')&&/disabled onclick="openAc\(0\)"/.test(rw)&&/disabled onclick="hermesAd\(\)"/.test(rw));
+ok('CG Basic Launch: rewards tab has no video buttons at all, only the Nectar shop',!rw.includes('Каждое видео')&&!rw.includes('openAc(')&&!rw.includes('hermesAd()')&&!rw.includes('chestAd()')&&rw.includes('buyShop('));
+run('PF.adblock=true;tabRender()');const rwb=els.list.innerHTML;ok('CG adblock: notice + disabled video buttons',rwb.includes('Награды можно получить за Нектар')&&/disabled onclick="openAc\(0\)"/.test(rwb)&&/disabled onclick="hermesAd\(\)"/.test(rwb));run('PF.adblock=false');
+run('S.last=NOW()-36e5;S.g[0]=50;offline()');{const mb=run("$('mbox').innerHTML");ok('CG Basic Launch: offline popup has no «watch video» button',mb.includes('o1')&&!mb.includes('id="o2"'));}run('closeM()');
+reset();run('PF.kind="cg";PF.noAds=false;PF.adblock=false;S.adT=0;S.floor=20;S.max=19;spawn()');ctx.__cg.calls=[];ctx.__cg.next='ok';run('dealt(1e30,false,0,0)');ok('CG full launch: midgame ad after a boss win',ctx.__cg.calls.includes('ad:midgame'));
+ctx.__cg.calls=[];run('S.floor=30;spawn();dealt(1e30,false,0,0)');ok('CG midgame: not more often than every 4 min',!ctx.__cg.calls.includes('ad:midgame'));
+ctx.__cg.calls=[];run('S.adT=0;S.floor=31;spawn();dealt(1e30,false,0,0)');ok('CG midgame: never after an ordinary monster',!ctx.__cg.calls.includes('ad:midgame'));run('PF.noAds=true');
+{const g=fs.readFileSync(ROOT+'/game.js','utf8'),b=fs.readFileSync(ROOT+'/build.sh','utf8');ok('CG ads are off by default, build switch CG_ADS=1 turns them on',/const CG_ADS=false/.test(g)&&/if\(!CG_ADS\)PF\.noAds=true/.test(g)&&b.includes("s/const CG_ADS=false/const CG_ADS=true/"));}
+{const c=fs.readFileSync(ROOT+'/style.css','utf8');ok('no text selection / magnifier on iOS',c.includes('-webkit-user-select:none')&&c.includes('-webkit-touch-callout:none'));ok('compact layout for the 800×450 embed',/max-height:520px\)\{[^@]*nav button,nav button\.x\{height:40px/.test(c)&&/max-height:520px\)\{[^@]*#tip\{top:84px;bottom:auto/.test(c));}
 ok('CG: no real-money Nectar packs',!rw.includes('buyPack('));
 run('S.g[0]=10;S.last=NOW()-7200e3;offline()');ok('CG ads off: offline popup has no x2 video button',!els.mbox.innerHTML.includes('o2'));els.modal.hidden=true;
 run('S.q=null;for(let i=0;i<30;i++){S.q=null;qn();if(S.q.p.some(qi=>QD[qi][1]=="a"))throw 1}');ok('CG ads off: no "watch videos" daily quests',true);
@@ -516,6 +567,7 @@ const css5=fs.readFileSync(ROOT+'/style.css','utf8'),htm5=fs.readFileSync(ROOT+'
 ok('CG: battle-screen video buttons hidden by CSS',css5.includes('body.pf-cg #bHermes,body.pf-cg #bChest,body.pf-cg #bSave{display:none}'));
 ok('landscape layout: arena | upgrades | section rail on wide screens',css5.includes('@media (min-aspect-ratio:5/4)')&&css5.includes('"arena panel nav"')&&css5.includes('"dock panel nav"'));
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
+ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
 }
 {
 // ---------- effects ----------

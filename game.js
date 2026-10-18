@@ -3,7 +3,7 @@ let tOff=0;const NOW=()=>Date.now()+tOff;
 const $=id=>document.getElementById(id);
 let LANG='ru';const t=(r,e)=>LANG=='ru'?r:e;
 // спрайты: обычный монстр акта (по индексу акта) и именные боссы (по этажу); файлы лежат в img/*.webp
-const SPR={mob:{0:'act1_mob'},boss:{50:'boss_0050',100:'boss_0100',250:'boss_0250',500:'boss_0500'}};
+const SPR={mob:{0:'act1_mob',1:'act2_mob',2:'act3_mob'},boss:{50:'boss_0050',100:'boss_0100',250:'boss_0250',500:'boss_0500',750:'boss_0750',1500:'boss_1500',2000:'boss_2000',2500:'boss_2500',3000:'boss_3000',4500:'boss_4500'}};
 let ACTS,BOSSES,WEAPONS,GODS;
 const WALLS=[50,100,250,500,2000,4500,7000,9000,10000];
 const S0=()=>({floor:1,max:1,gold:0,souls:0,w:[1,...Array(16).fill(0)],g:Array(18).fill(0),last:NOW(),chest:0,hermes:0,adT:0,tot:0,t:[0,0,0,0,0,0,0,0],inv:[],eq:[-1,-1,-1,-1,-1,-1],b:[[0,0],[0,0],[0,0]],day:0,dl:'',q:null,pt:0,run:1,farm:false,sc:[0,0,0,0],se:[0,0,0,0],ac:[0,0,0,0],mk:0,cheat:false,loot:[],vol:[.7,.3],sl:[0,0,0,0],nec:0,own:[[0],[0]],skin:0,theme:0,gf:0,sf:1,lang:'',st:{},achN:{},ach:{},tut:0,pc:0});
@@ -14,29 +14,30 @@ const cost=(b,l)=>b*Math.pow(1.13,l);
 const mult=l=>Math.pow(2,Math.floor(l/25));
 const soulM=()=>Math.pow(1+S.tot*.05,1.5),RB=[.3,.7,1.4,2.2,4.5,9,20,45],gearM=()=>1+S.eq.reduce((a,r)=>a+(r>=0?RB[r]:0),0),bld=i=>1+.1*S.b[i][0],T=i=>1+.1*S.t[i];
 const boost=()=>(NOW()<S.hermes?2:1)*(rage>0?2:1)*soulM()*gearM();
-const clickD=()=>(1+WEAPONS.reduce((a,w,i)=>a+w[1]*S.w[i]*mult(S.w[i]),0))*boost()*bld(0)*T(0)*(1+.25*pt(2))*(sa(3)?3:1);
-const dps=()=>GODS.reduce((a,g,i)=>a+g[1]*S.g[i]*mult(S.g[i]),0)*boost()*bld(2)*T(2)+(sa(1)?5*clickD()*pw(1):0);
+const clickD=()=>(1+WEAPONS.reduce((a,w,i)=>a+w[1]*S.w[i]*mult(S.w[i]),0))*boost()*bld(0)*T(0)*(1+.25*pt(2))*(1+.2*pt(17))*(sa(3)?3:1);
+const dps=()=>GODS.reduce((a,g,i)=>a+g[1]*S.g[i]*mult(S.g[i]),0)*boost()*bld(2)*T(2)*(1+.25*pt(9))*(1+.2*pt(17))*(sa(2)?3:1)+(sa(1)?5*clickD()*pw(1):0);
 const isBoss=f=>f%10==0;
 function mHP(f){let h=14*Math.pow(f,1.9)*Math.pow(1.045,Math.min(f,1000))*Math.exp(.0013*Math.max(0,f-1000));
  WALLS.forEach(w=>{if(f>=w)h*=3});return h*(isBoss(f)?6:1)}
 const act=f=>ACTS.find(a=>f<=a[0])||ACTS[5];
-function spawn(){const f=S.floor;if(f>S.run)S.run=f;maxhp=hp=mHP(f)*(1-.1*pt(3))/(isBoss(f)?1:5);inBoss=isBoss(f)&&!S.farm;bossT=inBoss?30+10*pt(7):0;
+function spawn(){const f=S.floor;if(f>S.run)S.run=f;maxhp=hp=mHP(f)*(1-.1*pt(3))*(isBoss(f)?1-.1*pt(10):1)/(isBoss(f)?1:5);inBoss=isBoss(f)&&!S.farm;bossT=inBoss?30+10*pt(7):0;
  {const a=act(f);$('mname').textContent=BOSSES[f]||(isBoss(f)?t('Страж ','Guardian of '):t('Тень ','Shade of '))+a[3]}
  {const m=$('monster'),ai=ACTS.indexOf(act(f)),sp=isBoss(f)?(SPR.boss[f]||SPR.mob[ai]):SPR.mob[ai];if(sp){m.textContent='';m.style.backgroundImage='url(img/'+sp+'.webp)'}else{m.textContent=isBoss(f)?'👑':act(f)[2];m.style.backgroundImage=''}m.classList.toggle('img',!!sp);m.classList.toggle('boss',isBoss(f));m.classList.toggle('named',!!(isBoss(f)&&SPR.boss[f]))}
  $('floor').textContent=t('Этаж ','Floor ')+f+(isBoss(f)||S.farm?'':' · '+(S.mk+1)+'/5');$('act').textContent=act(f)[1];$('arena').dataset.act=ACTS.indexOf(act(f));actUI(f);
  $('bRetry').hidden=!S.farm;$('bSave').hidden=!S.farm;if(inBoss)bossIn($('mname').textContent);draw()}
-function kill(){const f=S.floor;sfx(isBoss(f)?'boss':'kill');wait=SPAWN_DELAY;killFx(isBoss(f));S.gold+=mHP(f)*.1*(isBoss(f)?3:.2)*bld(1)*T(1)*(1+.3*pt(1))*(NOW()<S.gf?2:1);qp('k');if(isBoss(f)){for(let k=0;k<1+pt(6);k++)drop(0,true);qp('b')}
+function kill(){const f=S.floor;sfx(isBoss(f)?'boss':'kill');wait=SPAWN_DELAY;killFx(isBoss(f));S.gold+=mHP(f)*.1*(isBoss(f)?3:.2)*bld(1)*T(1)*(1+.3*pt(1))*(NOW()<S.gf?2:1);qp('k');if(isBoss(f)){for(let k=0;k<1+pt(14);k++)drop(0,true);qp('b')}
  const clr=!S.farm&&(isBoss(f)||++S.mk>=5);if(clr){S.mk=0;if(f>S.max){S.max=f;qp('f');submitScore()}}
  if(f>=10000&&isBoss(f)){S.st.win=(S.st.win||0)+1;modal(t('<h3>Хаос повержен!</h3><p>Вы вышли из Подземелья. Перерождение откроет новый круг.</p>','<h3>Chaos is defeated!</h3><p>You have escaped the Underworld. Rebirth starts a new cycle.</p>')+'<button onclick="closeM()">'+t('Дальше','Continue')+'</button>');happy();}
  else if(clr&&f<10000)S.floor++;
  if(clr&&[500,2000,4500,7000,9000].includes(f)){happy();interstitial(()=>{})}
+ else if(clr&&isBoss(f)&&PF.kind=='cg')interstitial(()=>{}); // CrazyGames: реклама между уровнями после победы над боссом (не чаще раза в 4 мин; в Basic Launch выключена)
  spawn();if(tab=='inv'||tab=='quest'||tab=='pres'||tab=='top')dirty=true;sv()}
 function lose(){sfx('lose');wait=0;$('monster').classList.remove('gone');S.floor--;S.farm=true;inBoss=false;spawn();bossT=0;save()}
 function dealt(d,crit,x,y){hp-=d;float(d,crit,x,y);if(hp<=0)kill();draw()}
 $('arena').addEventListener('pointerdown',e=>{
  const mm=clickOK(e);if(!mm)return;heroAtk();if(mm==1){qp('c');const now=NOW();clicks=clicks.filter(t=>now-t<2000);clicks.push(now)}
  if(mm==1&&clicks.length>=12-3*pt(5)&&rage<=0){rage=8;qp('r');$('rage').classList.add('on')}
- const crit=rage>0||Math.random()<.1+.15*pt(4)+.01*S.t[4];let d=clickD()*(crit?(rage>0?1:3+.2*S.t[3]):1)*mm;sfx(crit?'crit':'click');if(crit)qp('x');
+ const crit=rage>0||Math.random()<.1+.15*pt(4)+.01*S.t[4];let d=clickD()*(crit?(rage>0?1:3+.2*S.t[3]+pt(13)):1)*mm;sfx(crit?'crit':'click');if(crit)qp('x');
  if(crit){$('arena').classList.remove('shake');void $('arena').offsetWidth;$('arena').classList.add('shake');flash()}
  const r=$('arena').getBoundingClientRect();
  $('monster').classList.add('hit');setTimeout(()=>$('monster').classList.remove('hit'),60);
@@ -60,7 +61,8 @@ function buy(kind,i){const arr=kind=='w'?WEAPONS:GODS,lv=kind=='w'?S.w:S.g,[n,c]
  if(S.gold>=c){S.gold-=c;lv[i]+=n;qp('u',n);sfx('buy');tabRender();draw();save()}}
 // кнопки покупки: «+N ур. · цена», недоступные гаснут, лучшее вложение золота помечается «Выгоднее всего»
 function updBtns(){let best=null,bv=0;document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k,i=+b.dataset.i,A=k=='w'?WEAPONS:GODS,L=(k=='w'?S.w:S.g)[i],[n,c]=plan(A[i][2],L),key=n+'|'+fmt(c),ok=S.gold>=c;
-  if(b._k!==key){b._k=key;b.innerHTML='<b>+'+n+' '+t('ур.','lv.')+'</b><span><i class="coin"></i>'+fmt(c)+'</span>'}b.disabled=!ok;
+  // меняем только текст внутри кнопки: если пересоздать её содержимое во время нажатия, браузер теряет клик
+  if(b._k!==key){b._k=key;const lv='+'+n+' '+t('ур.','lv.'),pr=fmt(c),C=b.children;if(C&&C.length==2&&C[1].lastChild){C[0].textContent=lv;C[1].lastChild.nodeValue=pr}else b.innerHTML='<b>'+lv+'</b><span><i class="coin"></i>'+pr+'</span>'}b.disabled=!ok;
   const v=A[i][1]*((L+n)*mult(L+n)-L*mult(L))/c;if(ok&&v>bv){bv=v;best=b}
   const r=b.parentElement;if(r)r.classList.toggle('dim',!ok&&L==0)});
  document.querySelectorAll('[data-k]').forEach(b=>{const r=b.parentElement;if(r)r.classList.toggle('isbest',b===best)});
@@ -70,7 +72,7 @@ function upRow(k,a,i,L){const nx=25-L%25;
   `<small><em>+${fmt(a[1]*mult(L))}</em> ${k=='w'?t('к клику за уровень','click dmg per level'):t('урона/с за уровень','DPS per level')}</small>`+
   `<div class="m2"><span><i style="width:${(L%25)*4}%"></i></span><small>${t('×2 через ','×2 in ')}${nx} ${t('ур.','lv.')}</small></div>${k=='g'?psH(i):''}</div>`+
   `<button class="buy" data-k="${k}" data-i="${i}" onclick="buy('${k}',${i})"></button></div>`}
-function tabRender(){const L=$('list');let h='';
+function tabRender(){const L=$('list');let h='';dirty=false;
  if(tab=='hero'||tab=='gods'){const k=tab=='hero'?'w':'g',arr=tab=='hero'?WEAPONS:GODS,lv=tab=='hero'?S.w:S.g;
   if(tab=='hero'){const up=SK.some((a,i)=>skLv(i)>0&&S.sl[i]<SKMAX&&S.souls>=skCost(i));
    h+=panH('hero','<div class="seg"><button class="'+(htab=='w'?'on':'')+'" onclick="setHT(\'w\')">'+t('Оружие','Weapons')+'</button><button class="'+(htab=='s'?'on':'')+'" onclick="setHT(\'s\')">'+t('Умения','Skills')+(up?'<i class="dot"></i>':'')+'</button></div>'+(htab=='w'?qsH():''));
@@ -87,11 +89,12 @@ function prestige(){const g=soulGain();if(g<1||pcd()>0)return;
 function modal(h){$('mbox').innerHTML=h;$('modal').hidden=false}
 function closeM(){$('modal').hidden=true}
 // ---- Платформы: Яндекс Игры (ya), CrazyGames (cg) или локальный запуск (local) ----
+const CG_ADS=false; // CrazyGames: false — Basic Launch (рекламы нет, кнопки видео скрыты); для Full Launch собрать: CG_ADS=1 bash build.sh
 const PF={kind:'local',sdk:null,noAds:false,adblock:false};
 const adsOff=()=>PF.kind=='cg'&&(PF.noAds||PF.adblock);
 const okB=()=>'<button onclick="closeM()">'+t('Ок','OK')+'</button>';
 async function pfInit(){
- try{const C=window.CrazyGames&&window.CrazyGames.SDK;if(C){await C.init();if(C.environment=='crazygames'||C.environment=='local'){PF.kind='cg';PF.sdk=C;try{C.game.loadingStart()}catch(e){}try{PF.adblock=!!(await C.ad.hasAdblock())}catch(e){}return}}}catch(e){}
+ try{const C=window.CrazyGames&&window.CrazyGames.SDK;if(C){await C.init();if(C.environment=='crazygames'||C.environment=='local'){PF.kind='cg';PF.sdk=C;if(!CG_ADS)PF.noAds=true;try{C.game.loadingStart()}catch(e){}try{PF.adblock=!!(await C.ad.hasAdblock())}catch(e){}return}}}catch(e){}
  try{if(window.YaGames){ysdk=await YaGames.init();player=await ysdk.getPlayer();syncTime();PF.kind='ya'}}catch(e){ysdk=null}}
 // язык: ?lang=, затем язык из SDK площадки, затем браузера; русский для ru/be/uk/kk, иначе английский
 function pfLang(){let l='';try{const q=new URLSearchParams(location.search).get('lang');if(q)return q=='ru'?'ru':'en'}catch(e){}
@@ -122,7 +125,7 @@ function save(f){S.last=NOW();const j=JSON.stringify(S);storeSet(j);if(player&&(
 async function load(){let d=null;try{if(player){const r=await player.getData();if(r.s)d=r.s}}catch(e){}
  if(!d)d=storeGet();
  if(d)try{S=Object.assign(S0(),JSON.parse(d))}catch(e){}if(S.tot<S.souls)S.tot=S.souls;S.g=GODS.map((_,i)=>S.g[i]|0);S.w=WEAPONS.map((_,i)=>S.w[i]|0);S.t=TN.map((_,i)=>S.t[i]|0);}
-function offline(){const sec=Math.min(8*3600+1800*S.t[7],(NOW()-S.last)/1e3),g=dps()*sec*.05;
+function offline(){const sec=Math.min(8*3600+1800*S.t[7],(NOW()-S.last)/1e3),g=dps()*sec*.05*(1+.5*pt(11));
  if(sec>60&&g>0)modal(`<h3>${t('Пока вас не было','While you were away')}</h3><p>${t('Вы заработали','You earned')} 💰${fmt(g)}</p><button id="o1">${t('Забрать','Collect')}</button>${adsOff()?'':`<button id="o2">📺 ${t('Удвоить x2','Double x2')}</button>`}`),
   $('o1').onclick=()=>{S.gold+=g;closeM();tabRender()},$('o2')&&($('o2').onclick=()=>rewarded(()=>{S.gold+=g*2;closeM();tabRender()}))}
 function hermesAd(){if(NOW()<S.hermes)return;rewarded(()=>{S.hermes=NOW()+6e5;draw();if(tab=='rew')tabRender()})}
@@ -177,7 +180,8 @@ const DR=['help','state','get','save','reset'];
 function devExec(line){if(!devOK())return'консоль отключена';const[c,...a]=line.trim().split(/\s+/),f=DC[c];if(!f)return'неизвестная команда: '+c+' (help)';
  try{const r=f(...a);if(!DR.includes(c))S.cheat=true;return r}catch(e){return'ошибка: '+e.message}}
 async function init(){devInit();uiInit();$('list').addEventListener('pointerdown',()=>{lpDown=true;lpT=NOW()});['pointerup','pointercancel'].forEach(e=>document.addEventListener(e,()=>{lpDown=false;lpT=NOW()}));document.addEventListener('visibilitychange',()=>{if(document.hidden){audVis(true);save(true);lbFlush(true);if(PF.kind!='cg')gp(false)}else{audVis(false);if(PF.kind!='cg')gp(!paused);offline()}});await pfInit();try{document.body.classList.add('pf-'+PF.kind)}catch(e){}
- await load();setTexts(S.lang||pfLang());if(S.max>30&&!S.tut)S.tut=9;achCheck(true);applyCos();skBuild();spawn();tabRender();offline();
+ await load();setTexts(S.lang||pfLang());S.b.forEach((b,i)=>{if(b[1])b[1]=Math.min(b[1],NOW()+hTime(i)*1e3)}); // стройки по старым долгим таймерам — укоротить
+ if(S.max>30&&!S.tut)S.tut=9;achCheck(true);applyCos();skBuild();spawn();tabRender();offline();
  if(ysdk&&ysdk.features&&ysdk.features.LoadingAPI)ysdk.features.LoadingAPI.ready();if(PF.kind=='cg')try{PF.sdk.game.loadingStop()}catch(e){}gp(true);
  setInterval(save,15000);setInterval(musTick,400);setInterval(audVol,1000);requestAnimationFrame(loop)}
 
@@ -187,7 +191,7 @@ let TN;
 let QD;
 let AC;
 function adUI(){const n=NOW(),h=S.hermes-n,c=S.chest-n,B=$('bHermes'),C=$('bChest'),
- th=h>0?t('Гермес +100% · ','Hermes +100% · ')+hms(h):t('Буст Гермеса +100% · 10 мин','Hermes Boost +100% · 10 min'),tc=c>0?t('Сундук Харона · ','Charon\'s Chest · ')+hms(c):t('Сундук Харона',"Charon's Chest");
+ nw=typeof innerWidth=='number'&&innerWidth<520,th=h>0?t('Гермес +100% · ','Hermes +100% · ')+hms(h):nw?t('Гермес ×2 · 10 мин','Hermes ×2 · 10 min'):t('Буст Гермеса +100% · 10 мин','Hermes Boost +100% · 10 min'),tc=c>0?t('Сундук Харона · ','Charon\'s Chest · ')+hms(c):t('Сундук Харона',"Charon's Chest");
  if(B.textContent!==th){B.textContent=th;B.disabled=h>0;B.classList.toggle('act',h>0);B.style.setProperty&&B.style.setProperty('--w',Math.min(100,h/6e3)+'%')}
  if(C.textContent!==tc){C.textContent=tc;C.disabled=c>0}}
 // Ограничитель кликов (без проверок «я не бот»), настройки:
@@ -210,24 +214,23 @@ function clickOK(e){ // 0 — клик не засчитан, .25 — засчи
 let zt=0;const SKL=10;
 let SK;
 let PS;
-function pt(i){const l=S.g[i];return l>=50?2:l>=10?1:0}
+function pt(i){const l=S.g[i];return l>=200?2:l>=50?1:0}
 function sa(i){return S.se[i]>NOW()}
 function pw(i){return 1+.15*skLv(i)}
-function psH(i){if(!PS[i])return '';const tp=pt(i);return `<small class="ps${tp?' on':''}">${t('Пассив','Passive')} «${PS[i][0]}»: ${PS[i][1]} ${t('(откр. с ур.10, усиление с ур.50)','(unlocks at lv.10, stronger at lv.50)')}${tp?t(' · сейчас ×',' · now ×')+tp:''}</small>`}
+function psH(i){if(!PS[i])return '';const tp=pt(i);return `<small class="ps${tp?' on':''}">${t('Пассив','Passive')} «${PS[i][0]}»: ${PS[i][1]} ${t('(с ур.50, ×2 с ур.200)','(from lv.50, ×2 from lv.200)')}${tp?t(' · сейчас ×',' · now ×')+tp:''}</small>`}
 function skInfo(i){const a=SK[i],ok=S.w[a[2]]>=SKL;return `<small>${ok?'✅':'🔒'} Актив «${a[0]}»: ${a[5]} (КД ${a[3]} с${a[4]?', длит. '+a[4]+' с':''}${ok?'':', откр. с ур.'+SKL})`+(ok?')':'')+'</small>'}
 function skBuild(){const b=$('skills');SK.forEach((a,i)=>{const e=document.createElement('button');e.onclick=()=>useSk(i);b.appendChild(e)})}
 // панель умений: иконка, короткое имя, клавиша 1–4; перезарядка — затемнение по кругу с таймером; data-st: rdy/on/cd/na/lock
-function skUI(){const n=NOW(),B=$('skills').children;SK.forEach((a,i)=>{const e=B[i];if(!e)return;const lock=skLv(i)<1,cd=S.sc[i]-n,on=S.se[i]>n,na=i==2&&!inBoss,
+function skUI(){const n=NOW(),B=$('skills').children;SK.forEach((a,i)=>{const e=B[i];if(!e)return;const lock=skLv(i)<1,cd=S.sc[i]-n,on=S.se[i]>n,na=false,
  st=lock?'lock':on?'on':cd>0?'cd':na?'na':'rdy',full=a[3]*1e3,
  nm=lock?t('эт. ','fl. ')+SKU[i]:on?Math.ceil((S.se[i]-n)/1e3)+t(' с',' s'):a[6],
  ov=st=='cd'?'<span class="sk-c" style="--p:'+Math.round(Math.min(1,cd/full)*100)+'%">'+hms(cd)+'</span>':'',
- h=ico(lock?'lock':SKI[i])+'<span class="sk-n">'+nm+'</span><span class="sk-k">'+(i+1)+'</span>'+ov,
+ h=(lock?ico('lock'):'<img class="pi" src="img/icons/skill_'+(i+1)+'.webp" alt="">')+'<span class="sk-n">'+nm+'</span><span class="sk-k">'+(i+1)+'</span>'+ov,
  tl=a[0]+' — '+a[5]+(lock?t(' · откроется на этаже ',' · unlocks at floor ')+SKU[i]:na&&!on&&cd<=0?t(' · только в бою с боссом',' · boss fights only'):'');
  if(e._h!==h){e._h=h;e.innerHTML=h}if(e.title!==tl){e.title=tl;e.ariaLabel=tl}e.dataset.st=st;e.disabled=lock||cd>0||na})}
-function useSk(i){const a=SK[i],n=NOW();if(skLv(i)<1||S.sc[i]>n||(i==2&&!inBoss)||(i==0&&wait>0))return;
- S.sc[i]=n+a[3]*1e3*Math.max(.5,1-.03*S.t[6])*(1-.01*Math.min(30,S.sl[i]));S.se[i]=n+a[4]*1e3*(1+.1*S.t[5])*(1+.02*S.sl[i]);
+function useSk(i){const a=SK[i],n=NOW();if(skLv(i)<1||S.sc[i]>n||(i==0&&wait>0))return;
+ S.sc[i]=n+a[3]*1e3*Math.max(.5,1-.03*S.t[6])*(1-.01*Math.min(30,S.sl[i]))*(1-.1*pt(16));S.se[i]=n+a[4]*1e3*(1+.1*S.t[5])*(1+.02*S.sl[i])*(1+.2*pt(6));
  if(i==0)dealt(clickD()*20*pw(0)*(1+.1*S.t[5]),true,150,110);
- if(i==2)bossT+=10*(1+.1*S.t[5]);
  qp('s');sfx('skill');draw();save()}
 let ysT=0,svT=0,lpDown=false,lpT=0,dirty=false;
 function sv(){const n=NOW();if(n-svT>3000){svT=n;save()}}
@@ -239,37 +242,41 @@ function syncTime(){if(ysdk&&ysdk.serverTime)tOff=ysdk.serverTime()-Date.now()}
 function lbFlush(f){if(lbP&&(f||NOW()-lbT>=20000)){lbP=false;const c=S.cheat;if(!c){lbT=0;submitScore()}}}
 const SKU=[10,50,120,300],SKB=[3,5,8,12],SKMAX=50;
 let SHOP;
-let COS;
+let COS,COS_ON=false; // облики героя и темы арены: пока выключены (заглушки «Пока недоступно»)
 const THB=['radial-gradient(circle at 50% 25%,#3a0d14,#0b0507 70%)','radial-gradient(circle at 50% 25%,#2a2a14,#0b0a05 70%)','radial-gradient(circle at 50% 25%,#0d3a2a,#050b08 70%)','radial-gradient(circle at 50% 25%,#14263a,#05080b 70%)','radial-gradient(circle at 50% 25%,#2a0d3a,#07050b 70%)'];
 const PACKS=[['100',100,'nectar_100'],['350',350,'nectar_350'],['800',800,'nectar_800']];let SHD;
 let fnx=0;
 const skLv=i=>S.max>=SKU[i]?1+S.sl[i]:0,skCost=i=>Math.ceil(SKB[i]*Math.pow(1.55,S.sl[i]));
-function skH(){return SK.map((a,i)=>{const lv=skLv(i),ok=lv>0,c=skCost(i),mx=S.sl[i]>=SKMAX;return `<div class="row up${ok?'':' dim'}"><div class="ut">${ico(ok?SKI[i]:'lock')}</div><div class="ub"><div class="un"><b>${a[0]}</b><span class="lv">${t('ур.','lv.')} ${lv}</span></div><small>${a[5]}${ok?'':t(' · откроется на этаже ',' · unlocks at floor ')+SKU[i]}</small><small>${t('КД','CD')} ${a[3]} ${t('с','s')}${a[4]?t(' · длит. ',' · dur. ')+a[4]+t(' с',' s'):''} · ${t('сила','power')} ×${(1+.15*lv).toFixed(2)}</small></div><button ${!ok||mx||S.souls<c?'disabled':''} onclick="buySk(${i})">${mx?t('МАКС','MAX'):'<i class="soul"></i> '+c}</button></div>`}).join('')}
+function skH(){return SK.map((a,i)=>{const lv=skLv(i),ok=lv>0,c=skCost(i),mx=S.sl[i]>=SKMAX;return `<div class="row up${ok?'':' dim'}"><div class="ut pic">${ok?'<img class="pi" src="img/icons/skill_'+(i+1)+'.webp" alt="">':ico('lock')}</div><div class="ub"><div class="un"><b>${a[0]}</b><span class="lv">${t('ур.','lv.')} ${lv}</span></div><small>${a[5]}${ok?'':t(' · откроется на этаже ',' · unlocks at floor ')+SKU[i]}</small><small>${t('КД','CD')} ${a[3]} ${t('с','s')}${a[4]?t(' · длит. ',' · dur. ')+a[4]+t(' с',' s'):''} · ${t('сила','power')} ×${(1+.15*lv).toFixed(2)}</small></div><button ${!ok||mx||S.souls<c?'disabled':''} onclick="buySk(${i})">${mx?t('МАКС','MAX'):'<i class="soul"></i> '+c}</button></div>`}).join('')}
 function buySk(i){if(skLv(i)<1||S.sl[i]>=SKMAX||S.souls<skCost(i))return;S.souls-=skCost(i);S.sl[i]++;upd()}
-function toast(t){const e=$('toast');e.textContent=t;e.style.animation='none';void e.offsetWidth;e.style.animation=''}
+function toast(t,html){const e=$('toast');if(html)e.innerHTML=t;else e.textContent=t;e.style.animation='none';void e.offsetWidth;e.style.animation=''}
 function fairySpawn(){const f=$('fairy');f.style.top=(15+Math.random()*55)+'%';f.hidden=false;f.style.animation='none';void f.offsetWidth;f.style.animation='';fnx=NOW()+(45+Math.random()*45)*1e3}
 function fairyTap(){const f=$('fairy');if(f.hidden)return;f.hidden=true;const r=Math.random();let tt;
- if(r<.6){const v=Math.max(100,dps()*12);S.gold+=v;tt='💰'+fmt(v)}else if(r<.85){S.nec++;tt='+1 🍯'}else{S.hermes=Math.max(S.hermes,NOW())+12e4;tt=t('⚡ Гермес 2 мин','⚡ Hermes 2 min')}
- sfx('fairy');toast('🧚 '+tt);draw();sv()}
-function applyCos(){const h=$('hero');if(S.skin==0){h.textContent='';h.className='img'}else{h.textContent=COS[0][S.skin][0];h.className=''}$('app').style.background=THB[S.theme]}
-function shopH(){let h=`<div class="necc"><span class="it nc big">${ico('amphora')}</span><div><small>${t('Нектар','Nectar')}</small><b>${fmt(S.nec)}</b></div><p>${t('Каждое видео +1, каждое задание дня +1 (все 8 — ещё +5), 7-й день входа +10, феи','+1 per video, +1 per daily quest (+5 more for all 8), +10 on login day 7, fairies')}</p></div>`;
+ if(r<.6){const v=Math.max(100,dps()*12);S.gold+=v;tt='<i class="coin"></i>'+fmt(v)}else if(r<.85){S.nec++;tt='+1 <i class="nectar"></i>'}else{S.hermes=Math.max(S.hermes,NOW())+12e4;tt=t('Гермес ×2 · 2 мин','Hermes ×2 · 2 min')}
+ sfx('fairy');toast('<img class="tfi" src="img/icons/fairy_t.webp" alt="">'+tt,true);draw();sv()}
+function applyCos(){const h=$('hero');if(S.skin==0||!COS_ON){h.textContent='';h.className='img'}else{h.textContent=COS[0][S.skin][0];h.className=''}$('app').style.background=THB[COS_ON?S.theme:0]}
+function shopH(){let h=`<div class="necc"><span class="it nc big pic"><img class="pi" src="img/icons/icon_nectar.webp" alt=""></span><div><small>${t('Нектар','Nectar')}</small><b>${fmt(S.nec)}</b></div><p>${adsOff()?t('Каждое задание дня +1 (все 8 — ещё +5), 7-й день входа +10, феи, подвиги','+1 per daily quest (+5 more for all 8), +10 on login day 7, fairies, feats'):t('Каждое видео +1, каждое задание дня +1 (все 8 — ещё +5), 7-й день входа +10, феи','+1 per video, +1 per daily quest (+5 more for all 8), +10 on login day 7, fairies')}</p></div>`;
  const n=NOW(),SHI=['chest','chest','chest','orb','anvil','scroll','coins','bolt'],SHC=['c1','c2','c3','sl','h0','nc','c3','c3'];
  h+=`<div class="sech"><b>${t('Лавка Нектара','Nectar shop')}</b><span>${t('за Нектар, без видео','for Nectar, no video')}</span></div>`;
- SHOP.forEach((a,i)=>{const cd=a[1]=='chest'?S.ac[a[3]]-n:0,na=a[1]=='pcd'&&pcd()<=0||a[1]=='build'&&!S.b.some(b=>b[1]),dis=S.nec<a[2]||cd>0||na;
+ SHOP.forEach((a,i)=>{if(a[1]=='build')return; // «Достроить» есть прямо во вкладке «Дом»
+  const cd=0,na=a[1]=='pcd'&&pcd()<=0||a[1]=='build'&&!S.b.some(b=>b[1]),dis=S.nec<a[2]||cd>0||na;
   h+=`<div class="row up shp"><span class="it ${SHC[i]}">${ico(SHI[i])}</span><div class="ub"><b>${a[0]}</b><small>${a[1]=='chest'?AC[a[3]][1]+' · ':''}${SHD[i]}</small></div><button class="buy nec" ${dis?'disabled':''} onclick="buyShop(${i})">${cd>0?`<b>${hms(cd)}</b><span>${t('перезарядка','cooldown')}</span>`:`<b>${t('Купить','Buy')}</b><span><i class="nectar"></i>${a[2]}</span>`}</button></div>`});
- [[t('Облик героя','Hero look'),0],[t('Тема арены','Arena theme'),1]].forEach(([nm,k])=>{h+=`<div class="sech"><b>${nm}</b><span>${t('за Нектар','for Nectar')}</span></div><div class="cosg">`;COS[k].forEach((c,i)=>{const own=S.own[k].includes(i),cur=(k?S.theme:S.skin)==i;
+ if(!COS_ON)[[t('Облик героя','Hero look'),'helmet',t('Новые облики героя появятся в следующих обновлениях','New hero looks are coming in a future update')],[t('Тема арены','Arena theme'),'orb',t('Темы арены появятся в следующих обновлениях','Arena themes are coming in a future update')]].forEach(([nm,ic,tx])=>{h+=`<div class="sech"><b>${nm}</b><span>${t('скоро','soon')}</span></div><div class="row up shp dim cosoff"><span class="it">${ico(ic)}</span><div class="ub"><b>${t('Пока недоступно','Not available yet')}</b><small>${tx}</small></div><span class="soon">${ico('lock')}</span></div>`});
+ else [[t('Облик героя','Hero look'),0],[t('Тема арены','Arena theme'),1]].forEach(([nm,k])=>{h+=`<div class="sech"><b>${nm}</b><span>${t('за Нектар','for Nectar')}</span></div><div class="cosg">`;COS[k].forEach((c,i)=>{const own=S.own[k].includes(i),cur=(k?S.theme:S.skin)==i;
   h+=`<button class="cos${cur?' on':''}" ${!own&&S.nec<c[1]?'disabled':''} onclick="buyCos(${k},${i})">${k?`<span class="sw" style="background:${THB[i]}"></span><b>${c[0]}</b>`:`<span class="sk">${i?c[0]:'<i class="hi"></i>'}</span>`}<small>${own?(cur?t('Надето','Equipped'):t('Надеть','Equip')):'<i class="nectar"></i> '+c[1]}</small></button>`});h+='</div>'});
  if(PF.kind!='cg'){h+=`<div class="sech"><b>${t('Пополнить Нектар','Get Nectar')}</b><span>${t('покупка через Яндекс Игры','via Yandex Games')}</span></div>`;
  PACKS.forEach((p,i)=>{h+=`<div class="row up shp"><span class="it nc">${ico('amphora')}</span><div class="ub"><b>${p[0]} ${t('Нектара','Nectar')}</b></div><button class="buy" onclick="buyPack(${i})"><b>${t('Купить','Buy')}</b></button></div>`})}return h}
 function buyShop(i){const a=SHOP[i];if(S.nec<a[2])return;
- if(a[1]=='chest'){const k=a[3];if(S.ac[k]>NOW())return;S.nec-=a[2];S.ac[k]=NOW()+AC[k][2];qp('o');const tx=acGive(k);modal(`<h3>${AC[k][0]}</h3><p>${tx}</p>${okB()}`)}
+ if(a[1]=='chest'){const k=a[3];S.nec-=a[2];qp('o');const tx=acGive(k);modal(`<h3>${AC[k][0]}</h3><p>${tx}</p>${okB()}`)}
  else if(a[1]=='pcd'){if(pcd()<=0)return;S.nec-=a[2];S.pt=0}
  else if(a[1]=='build'){if(!S.b.some(b=>b[1]))return;S.nec-=a[2];S.b.forEach(b=>{if(b[1])b[1]=1});hTick()}
  else if(a[1]=='quests'){S.nec-=a[2];S.q=null;qn()}
  else if(a[1]=='gf'){S.nec-=a[2];S.gf=Math.max(S.gf,NOW())+36e5}
  else if(a[1]=='hermes'){S.nec-=a[2];S.hermes=Math.max(S.hermes,NOW())+36e5}
  upd()}
-function buyCos(k,i){const c=COS[k][i][1];if(!S.own[k].includes(i)){if(S.nec<c)return;S.nec-=c;S.own[k].push(i)}if(k==0)S.skin=i;else S.theme=i;applyCos();upd()}
+// «Достроить» во вкладке «Дом» — только эту постройку
+function finB(i){const a=SHOP.find(x=>x[1]=='build'),b=S.b[i];if(!a||!b||!b[1]||S.nec<a[2])return;S.nec-=a[2];b[1]=1;hTick();upd()}
+function buyCos(k,i){if(!COS_ON)return;const c=COS[k][i][1];if(!S.own[k].includes(i)){if(S.nec<c)return;S.nec-=c;S.own[k].push(i)}if(k==0)S.skin=i;else S.theme=i;applyCos();upd()}
 function buyPack(i){const p=PACKS[i];if(!ysdk||!ysdk.getPayments){modal('<p>'+t('Покупки доступны только в Яндекс Играх.','Purchases are available only on Yandex Games.')+'</p>'+okB());return}
  ysdk.getPayments({signed:false}).then(pay=>pay.purchase({id:p[2]}).then(pu=>{S.nec+=p[1];upd();try{pay.consumePurchase(pu.purchaseToken)}catch(e){}})).catch(()=>{})}
 const SPAWN_DELAY=.2,QN=8;let wait=0,hk=0,mxi=3,kfxT=0;
@@ -293,7 +300,7 @@ function setQ(q){BQ=q=='max'?'max':+q;tabRender()}
 const qsH=()=>'<div class="qs"><span>'+t('Покупать','Buy')+'</span>'+[1,5,25,100,'max'].map(q=>`<button class="${BQ==q?'on':''}" onclick="setQ('${q}')">${q=='max'?t('Макс','Max'):'×'+q}</button>`).join('')+'</div>';
 const upd=()=>{tabRender();draw();save()};
 const pcd=()=>Math.max(0,S.pt+3e5-NOW()),hms=r=>{const q=Math.ceil(r/1e3),h=Math.floor(q/3600);return (h?h+':':'')+String(Math.floor(q%3600/60)).padStart(h?2:1,'0')+':'+String(q%60).padStart(2,'0')},cdTxt=r=>{const q=Math.ceil(r/1e3);return Math.floor(q/60)+':'+String(q%60).padStart(2,'0')};
-function drop(mr=0,loot=false){const cap=S.floor<200?1:S.floor<600?2:S.floor<1500?3:S.floor<4000?4:S.floor<7000?5:6,p=.2+Math.min(.25,S.floor/2e4);let r=0;while(r<cap&&Math.random()<p)r++;const it={s:Math.floor(Math.random()*6),r:Math.max(r,mr)};(loot?S.loot:S.inv).push(it);if(S.loot.length>300)S.inv.push(S.loot.shift());qp('i');return it}
+function drop(mr=0,loot=false){const cap=S.floor<200?1:S.floor<600?2:S.floor<1500?3:S.floor<4000?4:S.floor<7000?5:6,p=.2+Math.min(.25,S.floor/2e4)+.05*pt(15);let r=0;while(r<cap&&Math.random()<p)r++;const it={s:Math.floor(Math.random()*6),r:Math.max(r,mr)};(loot?S.loot:S.inv).push(it);if(S.loot.length>300)S.inv.push(S.loot.shift());qp('i');return it}
 function mergeH(){const m={};S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});const can=Object.keys(m).some(k=>{const r=+k.split('_')[1];return r<7&&m[k]>=NEED[r]});
  const lad='<div class="lad">'+RN.map((n,r)=>`<i class="gem r${r}" title="${n}"></i>`+(r<7?`<span>${NEED[r]}</span>`:'')).join('')+'</div>';
  return `<div class="row mrg"><div><b>${t('Объединить все','Merge all')}</b><small>${t('Одинаковые вещи сливаются в одну следующей редкости (надетые не трогаем)','Identical items merge into one of the next rarity (equipped items stay)')}</small>${lad}</div><button ${can?'':'disabled'} onclick="craftAll()">${t('Объединить','Merge')}</button></div>`}
@@ -307,11 +314,11 @@ function craft(s,r){if(r>=7||S.inv.filter(x=>x.s==s&&x.r==r).length<NEED[r])retu
 // ======== ВЕЩИ: иконка по слоту, рамка и свечение по редкости (классы r0…r7 в style.css) ========
 const SLI=['helm','armor','sword','amulet','ring','cloak'];
 // значок предмета: sm — маленький (в окнах наград), иначе плитка 44 px
-const itm=(s,r,sm)=>`<span class="it r${r}${sm?' sm':''}"><svg class="ico" aria-hidden="true"><use href="#i-${SLI[s]}"/></svg></span>`;
+const itm=(s,r,sm)=>`<span class="it pic r${r}${sm?' sm':''}"><img class="pi" src="img/icons/slot_${s+1}.webp" alt=""></span>`;
 function invH(){const m={},have={};S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});
  let h=`<div class="eqc"><div class="eqh"><b>${t('Надето','Equipped')}</b><span>${t('весь урон ×','all damage ×')}<em>${gearM().toFixed(2)}</em></span></div><div class="eqg">`+
   SL.map((n,i)=>{const r=S.eq[i];return r>=0?`<div class="slot">${itm(i,r)}<b>${n}</b><small class="rt r${r}">${RN[r]}</small><small>+${pct(RB[r])}%</small></div>`:
-   `<div class="slot empty"><span class="it none"><svg class="ico" aria-hidden="true"><use href="#i-${SLI[i]}"/></svg></span><b>${n}</b><small>${t('пусто','empty')}</small></div>`}).join('')+'</div></div>'+mergeH();
+   `<div class="slot empty"><span class="it none pic"><img class="pi" src="img/icons/slot_${i+1}.webp" alt=""></span><b>${n}</b><small>${t('пусто','empty')}</small></div>`}).join('')+'</div></div>'+mergeH();
  const keys=Object.keys(m).sort((a,b)=>{const[x,y]=a.split('_').map(Number),[u,v]=b.split('_').map(Number);return v-y||x-u});let cur=-1;
  keys.forEach(k=>{const[s,r]=k.split('_').map(Number),n=m[k],need=NEED[r],top=r>=7,better=r>S.eq[s];
   if(r!==cur){cur=r;const tot=keys.filter(q=>+q.split('_')[1]===r).reduce((a,q)=>a+m[q],0);
@@ -321,7 +328,7 @@ function invH(){const m={},have={};S.inv.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m
    (top?'':`<div class="m2"><span><i style="width:${Math.min(100,Math.round(n/need*100))}%"></i></span></div>`)+`</div>`+
    `<div class="ia"><button class="${better?'pri':''}" onclick="equip(${s},${r})">${t('Надеть','Equip')}</button><button ${n<need||top?'disabled':''} onclick="craft(${s},${r})">${top?t('МАКС','MAX'):need+'→1'}</button></div></div>`});
  return h+(S.inv.length?'':'<div class="row"><small>'+t('Предметы выпадают с боссов (каждые 10 этажей).','Items drop from bosses (every 10 floors).')+'</small></div>')}
-const hCost=i=>[2e3,1e4,5e4][i]*Math.pow(6,S.b[i][0]),hTime=i=>30*Math.pow(2,S.b[i][0]);
+const hCost=i=>[2e3,1e4,5e4][i]*Math.pow(6,S.b[i][0]),hTime=i=>Math.min(21600,180*Math.pow(1.5,S.b[i][0]))*(1-.25*pt(8)); // 3 мин ×1.5 за уровень, не больше 6 ч
 function build(i){const b=S.b[i],c=hCost(i);if(b[1]||S.gold<c)return;S.gold-=c;b[1]=NOW()+hTime(i)*1e3;qp('h');upd()}
 function hTick(){const n=NOW();let d=false;tipUI();if(hk%5==0)navBadges();if(hk%10==0)achCheck();if(++hk%4==0&&dps()>0)heroAtk();if($('fairy').hidden&&n>fnx&&!paused)fairySpawn();lbFlush();if(dirty&&!busy()){dirty=false;tabRender()}S.b.forEach(b=>{if(b[1]&&b[1]<=n){b[0]++;b[1]=0;d=true}});
  if(tab=='rew')document.querySelectorAll('[data-ab]').forEach(b=>{const i=+b.dataset.ab,c=S.ac[i]-n,tx=abH(c,adsOff());if(b._h!==tx){b._h=tx;b.innerHTML=tx}b.disabled=c>0||adsOff()});if(tab=='pres'){const r=pcd(),g=soulGain();document.querySelectorAll('[data-pc]').forEach(e=>e.textContent=r>0?t('Кулдаун перерождения: ','Rebirth cooldown: ')+cdTxt(r):'');document.querySelectorAll('[data-pb]').forEach(e=>e.disabled=r>0||g<1)}if(tab!='house')return;if(d)tabRender();else{document.querySelectorAll('[data-ft]').forEach(e=>e.textContent=t('Строится: ','Building: ')+hms(Math.max(0,+e.dataset.ft-n)));document.querySelectorAll('[data-fb]').forEach(e=>e.style.width=Math.round(Math.min(1,1-(+e.dataset.fb-n)/+e.dataset.dur)*100)+'%')}}
@@ -332,17 +339,19 @@ function houseH(){const sh=SHOP.findIndex(x=>x[1]=='build'),sc=SHOP[sh][2];
  return `<div class="row hb h${i}"><span class="it big">${ico(BNI[i])}</span><div class="ub"><div class="un"><b>${a[0]}</b><span class="lv">${t('ур.','lv.')} ${L}</span></div>`+
   `<small>${a[1]} ${t('за ур.','per lv.')}</small><small class="nowv">${t('Сейчас','Now')} <em>+${10*L}%</em> → +${10*L+10}%</small>`+
   (b[1]?`<div class="m2 bld"><span><i data-fb="${b[1]}" data-dur="${dur*1e3}" style="width:${Math.round(Math.min(1,1-(b[1]-NOW())/(dur*1e3))*100)}%"></i></span><small data-ft="${b[1]}"></small></div>`:`<small>${t('Время постройки','Build time')}: ${hms(dur*1e3)}</small>`)+`</div>`+
-  (b[1]?`<button class="buy nec" ${S.nec<sc?'disabled':''} onclick="buyShop(${sh})"><b>${t('Достроить','Finish')}</b><span><i class="nectar"></i>${sc}</span></button>`:
+  (b[1]?`<button class="buy nec" ${S.nec<sc?'disabled':''} onclick="finB(${i})"><b>${t('Достроить','Finish')}</b><span><i class="nectar"></i>${sc}</span></button>`:
   `<button class="buy" data-b="${c}" onclick="build(${i})"><b>${L?t('Улучшить','Upgrade'):t('Построить','Build')}</b><span><i class="coin"></i>${fmt(c)}</span></button>`)+`</div>`}).join('')}
 function qpick(){const a=QD.map((_,i)=>i).sort(()=>Math.random()-.5),r=[],ks={};for(const i of a){if(adsOff()&&QD[i][1]=='a')continue;if(!ks[QD[i][1]]){ks[QD[i][1]]=1;r.push(i)}if(r.length==QN)break}return r}
 function qn(){if(!S.q||!S.q.p||S.q.p.length!=QN||NOW()-S.q.t>864e5)S.q={t:NOW(),k:0,c:0,b:0,u:0,s:0,r:0,i:0,a:0,h:0,f:0,x:0,o:0,m:0,bn:0,d:Array(QN).fill(0),p:qpick()}}
-function qp(k,n=1){qn();S.q[k]+=n;S.st[k]=(S.st[k]||0)+n}
+// любой прогресс заданий/подвигов перерисует открытую вкладку на следующем тике (не во время нажатия в списке)
+function qp(k,n=1){qn();S.q[k]+=n;S.st[k]=(S.st[k]||0)+n;if(tab=='quest'||tab=='top')dirty=true}
 function qClaim(j){qn();const q=QD[S.q.p[j]];if(S.q.d[j]||S.q[q[1]]<q[2])return;S.q.d[j]=1;sfx('reward');S.gold+=mHP(Math.max(S.max,10))*q[3];S.nec++;if(S.q.d.every(x=>x)&&!S.q.bn){S.q.bn=1;S.nec+=5}upd()}
 function acGive(i){sfx('reward');const g=mHP(Math.max(S.max,10)),[gm,ni,mr,so]=[[4,0,0,0],[10,1,0,0],[30,2,1,0],[100,3,2,1]][i];S.gold+=g*gm;const its=[];for(let k=0;k<ni;k++)its.push(drop(mr));let t='💰'+fmt(g*gm);if(so){const x=1+Math.floor(S.max/100);S.souls+=x;S.tot+=x;t+=' · 🔮'+x}return t+its.map(it=>'<br>'+itm(it.s,it.r,1)+' '+SL[it.s]+' · '+RN[it.r]+' (+'+pct(RB[it.r])+'%)').join('')}
 function openAc(i){if(S.ac[i]>NOW())return;rewarded(()=>{qp('o');S.ac[i]=NOW()+AC[i][2];const tx=acGive(i);modal(`<h3>${AC[i][0]}</h3><p>${tx}</p>${okB()}`);upd()})}
 // ======== НАГРАДЫ: видео-награды и сундуки (цвет по сорту), лавка Нектара, облики ========
 const abH=(c,off)=>c>0?`<b>${hms(c)}</b><span>${t('перезарядка','cooldown')}</span>`:`<b>${t('Открыть','Open')}</b><span>${off?t('недоступно','unavailable'):t('за видео','watch video')}</span>`;
 function rewH(){const n=NOW(),off=adsOff();let h='';
+ if(PF.kind=='cg'&&PF.noAds&&!PF.adblock)return shopH();
  if(off)h+=`<div class="note">${adOffMsg()}. ${t('Награды можно получить за Нектар ниже.','You can still get rewards for Nectar below.')}</div>`;
  h+=`<div class="sech"><b>${t('За просмотр видео','For watching a video')}</b><span>${t('бесплатно, по таймеру','free, on a timer')}</span></div>`;
  if(PF.kind=='cg'){const hh=S.hermes-n,cc=S.chest-n;
@@ -365,7 +374,7 @@ function questH(){qn();const td=new Date(NOW()).toDateString(),y=new Date(NOW()-
  return h+`<div class="row qb${S.q.bn?' done':''}"><div class="ub"><b>${t('Все задания дня','All daily quests')}: ${dc}/${QN}</b><div class="m2"><span><i style="width:${Math.round(dc/QN*100)}%"></i></span></div><small>${S.q.bn?t('Бонус получен','Bonus claimed'):t('Бонус за все: ','Bonus for all: ')+'<i class="nectar"></i>5'}</small></div></div>`}
 const TB=[3,3,3,5,5,8,8,10],TM=[1e9,1e9,1e9,1e9,25,20,15,16],tc=i=>TB[i]*Math.pow(2,S.t[i]);
 function soulG(x){return Math.floor(x/5*(1+x/400))}
-function soulGain(){return Math.max(0,soulG(S.run)-soulG(S.sf))}
+function soulGain(){return Math.floor(Math.max(0,soulG(S.run)-soulG(S.sf))*(1+.1*pt(12)))}
 const START_FRAC=.3;
 function startF(){let f=Math.max(1,Math.floor(START_FRAC*S.run));if(isBoss(f))f--;return Math.max(1,f)}
 function skipGold(f){let g=0;for(let i=1;i<=f;i++)g+=mHP(i)*.1*(isBoss(i)?3:1);return g*bld(1)*T(1)}
@@ -389,7 +398,7 @@ function talH(){return TN.map((a,i)=>{const l=S.t[i],mx=l>=TM[i],cap=TM[i]<1e9,c
 // ======== ТЕКСТЫ (ru/en). setTexts вызывается до init и после выбора языка ========
 function setTexts(l){LANG=l=='en'?'en':'ru';
  ACTS=[[500,t('Тартар','Tartarus'),'👹',t('Тартара','Tartarus')],[2000,t('Асфодель','Asphodel'),'💀',t('Асфоделя','Asphodel')],[4500,t('Элизиум','Elysium'),'🗡️',t('Элизиума','Elysium')],[7000,t('Олимп','Olympus'),'⚡',t('Олимпа','Olympus')],[9000,t('Вход в Хаос','Gates of Chaos'),'🌑',t('Входа в Хаос','the Gates of Chaos')],[10000,t('Сердце Хаоса','Heart of Chaos'),'🌀',t('Сердца Хаоса','the Heart of Chaos')]];
- BOSSES={50:t('Мегера','Megaera'),100:t('Алекто','Alecto'),250:t('Тисифона','Tisiphone'),500:t('Лернейская Гидра','Lernaean Hydra'),750:t('Лавовый Кентавр','Lava Centaur'),1000:t('Тесей','Theseus'),1500:t('Астерий','Asterion'),2000:t('Тесей и Минотавр','Theseus and the Minotaur'),2500:t('Ахилл','Achilles'),3000:t('Патрокл','Patroclus'),4500:t('Владыка Аид','Lord Hades'),5000:t('Прометей','Prometheus'),5500:t('Гера','Hera'),7000:t('Верховный Зевс','Zeus the Almighty'),7500:t('Харон','Charon'),8000:t('Тень Загрея','Shadow of Zagreus'),9000:t('Кронос','Kronos'),9250:t('Уран','Uranus'),9500:t('Гея','Gaia'),9750:t('Аид Титан','Titan Hades'),10000:t('Абсолютный Хаос','Absolute Chaos')};
+ BOSSES={50:t('Мегера','Megaera'),100:t('Алекто','Alecto'),250:t('Тисифона','Tisiphone'),500:t('Лернейская Гидра','Lernaean Hydra'),750:t('Лавовый Кентавр','Lava Centaur'),1000:t('Тесей','Theseus'),1500:t('Астерий','Asterion'),2000:t('Тесей и Минотавр','Theseus and the Minotaur'),2500:t('Ахилл','Achilles'),3000:t('Патрокл','Patroclus'),4500:t('Владыка Аид','Lord Hades'),5000:t('Прометей','Prometheus'),5500:t('Гера','Hera'),7000:t('Верховный Зевс','Zeus the Almighty'),7500:t('Харон','Charon'),8000:t('Тифон','Typhon'),9000:t('Кронос','Kronos'),9250:t('Уран','Uranus'),9500:t('Гея','Gaia'),9750:t('Аид Титан','Titan Hades'),10000:t('Абсолютный Хаос','Absolute Chaos')};
  WEAPONS=[[t('Меч Стикса','Sword of Styx'),1,15],[t('Копьё Афины','Spear of Athena'),12,180],[t('Щит Хаоса','Shield of Chaos'),90,1500],[t('Лук Икара','Bow of Icarus'),700,14e3],[t('Клинки Деметры','Blades of Demeter'),5e3,1.3e5],[t('Секира Геракла','Axe of Heracles'),4e4,1.2e6],[t('Трезубец Посейдона','Trident of Poseidon'),3e5,1.1e7],[t('Молния Зевса','Thunderbolt of Zeus'),2.5e6,1e8],[t('Коса Хроноса','Scythe of Chronos'),2e7,9e8],[t('Серп Тьмы','Sickle of Darkness'),2e8,8e9],[t('Клинок Всездания','Blade of All-Creation'),2e9,7e10],[t('Нить Мойр','Thread of the Moirai'),2e10,6.3e11],[t('Коса Таната','Scythe of Thanatos'),2e11,5.7e12],[t('Клинок Эреба','Blade of Erebus'),2e12,5.1e13],[t('Жало Тифона','Sting of Typhon'),2e13,4.6e14],[t('Молот Титанов','Hammer of the Titans'),2e14,4.1e15],[t('Око Хаоса','Eye of Chaos'),2e15,3.7e16]];
  GODS=[[t('Зевс','Zeus'),4,30],[t('Посейдон','Poseidon'),40,350],[t('Арес','Ares'),320,3e3],[t('Афродита','Aphrodite'),2600,3e4],[t('Аполлон','Apollo'),2e4,3e5],[t('Гермес','Hermes'),1.8e5,3e6],[t('Деметра','Demeter'),1.6e6,3e7],[t('Афина','Athena'),1.4e7,3e8],[t('Гефест','Hephaestus'),1.2e8,2.5e9],[t('Дионис','Dionysus'),1e9,2e10],[t('Артемида','Artemis'),9e9,1.8e11],[t('Никта','Nyx'),8e10,1.6e12],[t('Геката','Hecate'),7e11,1.4e13],[t('Танат','Thanatos'),6e12,1.2e14],[t('Хипнос','Hypnos'),5.5e13,1.1e15],[t('Мойры','The Moirai'),5e14,1e16],[t('Эреб','Erebus'),4.5e15,9e16],[t('Эфир','Aether'),4e16,8e17]];
  SL=[t('Шлем','Helmet'),t('Доспех','Armor'),t('Оружие','Weapon'),t('Амулет','Amulet'),t('Кольцо','Ring'),t('Плащ','Cloak')];
@@ -401,8 +410,8 @@ function setTexts(l){LANG=l=='en'?'en':'ru';
  [t('Нанести 100 критов','Land 100 crits'),'x',100,3],[t('Нанести 500 критов','Land 500 crits'),'x',500,7],[t('Открыть сундук за рекламу','Open a chest'),'o',1,5],[t('Открыть 3 сундука','Open 3 chests'),'o',3,12],[t('Сделать 3 синтеза предметов','Merge items 3 times'),'m',3,5],[t('Сделать 10 синтезов','Merge items 10 times'),'m',10,12],
  [t('Посмотреть рекламу 5 раз','Watch 5 videos'),'a',5,12],[t('Победить 5 боссов','Defeat 5 bosses'),'b',5,14],[t('Убить 2500 монстров','Kill 2500 monsters'),'k',2500,18],[t('Сделать 3000 кликов','Make 3000 clicks'),'c',3000,18],[t('Купить 50 улучшений','Buy 50 upgrades'),'u',50,10],[t('Использовать умения 10 раз','Use skills 10 times'),'s',10,10],[t('Открыть 20 новых этажей','Reach 20 new floors'),'f',20,14],[t('Получить 10 предметов','Get 10 items'),'i',10,12]];
  AC=[[t('Награда за видео','Video reward'),t('золото за просмотр видео','gold for watching a video'),6e5],[t('Бронзовый сундук','Bronze chest'),t('золото + 1 предмет','gold + 1 item'),36e5],[t('Серебряный сундук','Silver chest'),t('много золота + 2 предмета (не ниже редких)','lots of gold + 2 items (Rare or better)'),108e5],[t('Золотой сундук','Gold chest'),t('очень много золота + 3 предмета (не ниже эпических) + души','tons of gold + 3 items (Epic or better) + souls'),288e5]];
- SK=[[t('Удар Стикса','Styx Strike'),'🗡️',0,30,0,t('мгновенный удар в 20× урона клика','instant hit for 20× click damage'),t('Стикс','Styx')],[t('Бросок Афины',"Athena's Throw"),'🔱',1,45,8,t('8 с: +5 автокликов в секунду','8 s: +5 auto-clicks per second'),t('Афина','Athena')],[t('Щит Хаоса','Chaos Shield'),'🛡️',2,60,0,t('+10 с к таймеру босса (только в бою с боссом)','+10 s to the boss timer (boss fights only)'),t('Щит','Shield')],[t('Гнев Икара',"Icarus' Fury"),'🏹',3,60,10,t('10 с: урон клика ×3','10 s: click damage ×3'),t('Икар','Icarus')]];
- PS=[[t('Молния','Lightning'),t('каждые 8 с удар в 10× урона в секунду','every 8 s a strike for 10× damage per second')],[t('Дар приливов','Gift of Tides'),t('+30% золота','+30% gold')],[t('Жажда битвы','Battle Thirst'),t('+25% урона клика','+25% click damage')],[t('Очарование','Charm'),t('монстры слабее на 10%','monsters are 10% weaker')],[t('Золотая стрела','Golden Arrow'),t('+15% к шансу крита','+15% crit chance')],[t('Быстрые ноги','Swift Feet'),t('Гнев Олимпа с 9 кликов вместо 12','Olympus Wrath after 9 clicks instead of 12')],[t('Щедрый урожай','Rich Harvest'),t('+1 предмет с боссов','+1 item from bosses')],[t('Мудрость','Wisdom'),t('+10 с к таймеру босса','+10 s to the boss timer')]];
+ SK=[[t('Удар Стикса','Styx Strike'),'🗡️',0,30,0,t('мгновенный удар в 20× урона клика','instant hit for 20× click damage'),t('Стикс','Styx')],[t('Бросок Афины',"Athena's Throw"),'🔱',1,45,8,t('8 с: +5 автокликов в секунду','8 s: +5 auto-clicks per second'),t('Афина','Athena')],[t('Вихрь Хаоса','Chaos Vortex'),'🌀',2,60,10,t('10 с: урон богов в секунду ×3','10 s: gods\' damage per second ×3'),t('Вихрь','Vortex')],[t('Гнев Икара',"Icarus' Fury"),'🏹',3,60,10,t('10 с: урон клика ×3','10 s: click damage ×3'),t('Икар','Icarus')]];
+ PS=[[t('Молния','Lightning'),t('каждые 8 с удар в 10× урона в секунду','every 8 s a strike for 10× damage per second')],[t('Дар приливов','Gift of Tides'),t('+30% золота','+30% gold')],[t('Жажда битвы','Battle Thirst'),t('+25% урона клика','+25% click damage')],[t('Очарование','Charm'),t('монстры слабее на 10%','monsters are 10% weaker')],[t('Золотая стрела','Golden Arrow'),t('+15% к шансу крита','+15% crit chance')],[t('Быстрые ноги','Swift Feet'),t('Гнев Олимпа с 9 кликов вместо 12','Olympus Wrath after 9 clicks instead of 12')],[t('Долгое лето','Long Summer'),t('умения действуют на 20% дольше','skills last 20% longer')],[t('Мудрость','Wisdom'),t('+10 с к таймеру босса','+10 s to the boss timer')],[t('Горн Гефеста','Forge of Hephaestus'),t('постройки строятся на 25% быстрее','buildings finish 25% faster')],[t('Буйный пир','Wild Feast'),t('+25% урона богов','+25% gods damage')],[t('Охота','The Hunt'),t('боссы слабее на 10%','bosses are 10% weaker')],[t('Покров ночи','Veil of Night'),t('+50% офлайн-дохода','+50% offline income')],[t('Колдовство','Witchcraft'),t('+10% душ при перерождении','+10% souls on rebirth')],[t('Последний удар','Final Blow'),t('+1 к множителю крита','+1 crit multiplier')],[t('Вещие сны','Prophetic Dreams'),t('+1 предмет с боссов','+1 item from bosses')],[t('Нить судьбы','Thread of Fate'),t('чаще выпадают редкие вещи','rare items drop more often')],[t('Мрак','Gloom'),t('−10% к перезарядке умений','−10% skill cooldown')],[t('Сияние эфира','Radiance of Aether'),t('+20% ко всему урону','+20% to all damage')]];
  SHOP=[[t('Бронзовый сундук','Bronze chest'),'chest',4,1],[t('Серебряный сундук','Silver chest'),'chest',10,2],[t('Золотой сундук','Gold chest'),'chest',25,3],[t('Сброс перезарядки перерождения','Rebirth cooldown reset'),'pcd',6],[t('Достроить все здания','Finish all buildings'),'build',3],[t('Новые задания дня','New daily quests'),'quests',5],[t('Золотая лихорадка','Gold Rush'),'gf',12],[t('Гермес на час','Hermes for an hour'),'hermes',15]];
  SHD=[t('без видео','no video'),t('без видео','no video'),t('без видео','no video'),t('переродиться можно сразу','rebirth again right away'),t('стройки завершатся мгновенно','buildings finish instantly'),t('свежий набор из 8 заданий','a fresh set of 8 quests'),t('×2 золота на 1 час','×2 gold for 1 hour'),t('×2 урона на 1 час','×2 damage for 1 hour')];
  COS=[[['🤺',0],['🦸',20],['🧝',30],['🥷',40],['🧙',60],['👑',100]],[[t('Тартар','Tartarus'),0],[t('Асфодель','Asphodel'),25],[t('Элизиум','Elysium'),40],[t('Олимп','Olympus'),60],[t('Хаос','Chaos'),90]]];
@@ -540,7 +549,7 @@ function musBar(t){const ai=Math.max(0,ACTS.indexOf(act(S.floor))),m=MODES[ai],b
 function musTick(){if(!snd()||paused||S.vol[1]<=0||!AUD||AUD.state=='suspended')return;if(!audInit())return;try{const now=AUD.currentTime||0;if(mus.t<now)mus.t=now+.15;while(mus.t<now+1.5){musBar(mus.t);mus.t+=BAR}}catch(e){}}
 // ======== ИНТЕРФЕЙС: иконки, шапка акта, заголовки разделов, меню и значки ========
 const ico=n=>'<svg class="ico" aria-hidden="true"><use href="#i-'+n+'"/></svg>';
-const WICO=['sword','spear','shield','bow','blades','axe','trident','bolt','scythe','sickle','sword','thread','scythe','sword','sting','hammer','eye'],SKI=['sword','spear','shield','bow'],ROM=['I','II','III','IV','V','VI'];
+const WICO=['sword','spear','shield','bow','blades','axe','trident','bolt','scythe','sickle','sword','thread','scythe','sword','sting','hammer','eye'],SKI=['sword','spear','orb','bow'],ROM=['I','II','III','IV','V','VI'];
 let htab='w',PANH={};
 function setHT(x){htab=x;tabRender()}
 // заголовок панели раздела: название, подсказка, доп. элементы (переключатель, «Покупать ×N»)
@@ -548,8 +557,9 @@ function panH(k,extra){const v=PANH[k]||['',''];return `<div class="ph"><div cla
 function navGo(x){const nv=$('nav');if(x=='more'){nv.classList.toggle('open');return}nv.classList.remove('open');
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==x||(b.dataset.t=='more'&&['pres','house','rew','top'].includes(x))));tab=x;tabRender();$('list').scrollTop=0}
 // прогресс акта в шапке и строка над врагом: точки 5 монстров этажа и «босс через N этажей»
+const setTx=(id,v)=>{const e=$(id);if(e.textContent!==v)e.textContent=v};
 function actUI(f){const a=act(f),ai=ACTS.indexOf(a),st=ai?ACTS[ai-1][0]:0;
- $('actn').textContent=t('Акт ','Act ')+ROM[ai];$('actf').textContent=t('этаж ','floor ')+f+t(' из ',' of ')+a[0];$('actp').style.width=Math.min(100,(f-st)/(a[0]-st)*100)+'%';
+ setTx('actn',t('Акт ','Act ')+ROM[ai]);setTx('actf',t('этаж ','floor ')+f+t(' из ',' of ')+a[0]);$('actp').style.width=Math.min(100,(f-st)/(a[0]-st)*100)+'%';
  const P=$('pips'),boss=isBoss(f);P.hidden=boss||S.farm;if(!P.hidden&&P.children)[...P.children].forEach((e,j)=>{e.className=j<S.mk?'d':j==S.mk?'c':''});
  const nb=10-f%10;$('nextb').textContent=boss||S.farm?'':nb==1?t('дальше — босс','boss is next'):t('босс через ','boss in ')+nb+t(' эт.',' fl.')}
 // значки на разделах: что можно забрать или улучшить прямо сейчас

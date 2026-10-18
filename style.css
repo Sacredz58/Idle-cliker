@@ -3,7 +3,7 @@
 :root{--bg:#0e0908;--top:#140d0c;--panel:#160f0e;--card:#1e1513;--card2:#251a14;--chip:#2a1d1a;--line:rgba(255,214,170,.08);--line2:rgba(255,214,170,.14);
  --tx:#f3e9df;--tx2:#d7c6b8;--mut:#b8a79a;--mut2:#9c8b7e;--gold:#e8b04a;--gold2:#f6cf7e;--ink:#1a0f08;--red:#d9472a;--soul:#a98bff;--ember:#f2a07a;
  --serif:'Forum',Georgia,'Palatino Linotype',serif;--sans:'Golos Text',system-ui,-apple-system,'Segoe UI',sans-serif;--dock:118px}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:var(--sans);overflow:hidden}
 b,strong{font-weight:700}
 #app{height:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:radial-gradient(circle at 50% 25%,#3a0d14,#0b0507 70%)}
@@ -11,6 +11,8 @@ button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(
 button:hover:not(:disabled){border-color:rgba(232,176,74,.5)}
 button:disabled{opacity:.45;cursor:default}button:active:not(:disabled){transform:scale(.97)}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+/* клик всегда попадает в саму кнопку, даже если её надпись обновилась посреди нажатия */
+button *{pointer-events:none}
 .ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .num,#gold,#souls,#nec,#cd,#dps,#hptxt,#timer,.buy{font-variant-numeric:tabular-nums}
 i.coin,i.soul,i.nectar{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none;vertical-align:-1px}
@@ -40,6 +42,10 @@ i.nectar{width:10px;height:10px;border-radius:3px;background:#e07a3f;box-shadow:
 #arena{position:relative;flex:0 0 auto;height:clamp(220px,33vh,330px);overflow:hidden;cursor:pointer;background-color:rgba(0,0,0,.15)}
 #arena[data-act="0"]{background:linear-gradient(rgba(14,9,8,.6),rgba(14,9,8,0) 30%,rgba(14,9,8,0) 70%,rgba(14,9,8,.8)),url(img/act1_bg.webp) center 65%/cover no-repeat}
 #arena[data-act="1"]{background:linear-gradient(rgba(14,9,8,.6),rgba(14,9,8,0) 30%,rgba(14,9,8,0) 70%,rgba(14,9,8,.8)),url(img/act2_bg.webp) center 70%/cover no-repeat}
+#arena[data-act="2"]{background:linear-gradient(rgba(14,9,8,.6),rgba(14,9,8,0) 30%,rgba(14,9,8,0) 70%,rgba(14,9,8,.8)),url(img/act3_bg.webp) center 60%/cover no-repeat}
+#arena[data-act="3"]{background:linear-gradient(rgba(14,9,8,.6),rgba(14,9,8,0) 30%,rgba(14,9,8,0) 70%,rgba(14,9,8,.8)),url(img/act4_bg.webp) center 92%/cover no-repeat}
+#arena[data-act="4"]{background:linear-gradient(rgba(14,9,8,.6),rgba(14,9,8,0) 30%,rgba(14,9,8,0) 70%,rgba(14,9,8,.8)),url(img/act5_bg.webp) center 88%/cover no-repeat}
+#arena[data-act="5"]{background:linear-gradient(rgba(14,9,8,.6),rgba(14,9,8,0) 30%,rgba(14,9,8,0) 70%,rgba(14,9,8,.8)),url(img/act6_bg.webp) center 75%/cover no-repeat}
 #foe{position:absolute;top:10px;left:12px;right:12px;z-index:4;display:flex;flex-direction:column;gap:5px;pointer-events:none}
 #mname{font-family:var(--serif);font-size:22px;line-height:1.1;text-shadow:0 2px 10px rgba(0,0,0,.85)}
 .meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:var(--tx2);text-shadow:0 1px 3px #000}
@@ -104,7 +110,10 @@ i.nectar{width:10px;height:10px;border-radius:3px;background:#e07a3f;box-shadow:
 .st .ico{width:16px;height:16px;color:var(--gold)}
 .st div{display:flex;gap:5px;align-items:baseline}
 .st b{color:var(--tx);font-size:13px}
-.st.rg{flex:1;gap:8px;min-width:90px}
+.st small,.st b{white-space:nowrap}
+.st.rg{flex:1;gap:8px;min-width:60px}
+.st .rgi{display:none}
+@media (max-width:430px){.st.rg small{display:none}.st .rgi{display:block;flex:none}#stats{gap:12px}}
 #rage{flex:1;height:5px;border-radius:3px;background:var(--chip);overflow:hidden}
 #rageb{display:block;height:100%;width:0;background:var(--gold)}
 #rage.on #rageb{background:#ff5a2a;box-shadow:0 0 10px #ff5a2a}
@@ -259,6 +268,18 @@ nav .bd:empty:not(.dot){display:none}nav .bd.dot{min-width:8px;width:8px;height:
  nav button,nav button.x{height:52px}
  .pht h2{font-size:26px}.ph{padding:12px 0 8px}
 }
+/* низкое окно (встраивание 800×450): рейка разделов плотнее, подсказка под полоской здоровья, чтобы не закрывать умения */
+@media (min-aspect-ratio:5/4) and (min-width:720px) and (max-height:520px){
+ #top{height:48px}
+ nav{gap:2px;padding:5px 0}
+ nav button,nav button.x{height:40px;width:66px;font-size:9.5px;gap:2px}
+ nav button .ico{width:18px;height:18px}
+ nav [data-t="pres"]{margin-bottom:7px}nav [data-t="pres"]::after{bottom:-5px}
+ nav button.on::before{top:8px;height:24px}
+ nav .bd{top:1px;right:10px}nav .bd.dot{top:4px;right:14px}
+ #tip{top:84px;bottom:auto;font-size:12px;padding:6px 6px 6px 10px}
+ #foe{top:8px}#mname{font-size:21px}
+}
 /* ПК поуже (окно игры на площадке ~960×540): бой — в две строки, статы полосой снизу, строки прокачки компактнее */
 @media (min-aspect-ratio:5/4) and (min-width:720px) and (max-width:1279px){
  :root{--dock:124px}
@@ -389,4 +410,33 @@ small.rw{display:flex!important;align-items:center;gap:4px;flex-wrap:wrap}small.
 .cos:disabled{opacity:.55}
 .row.fr.rdy{border-color:rgba(255,204,77,.5);background:var(--card2)}
 .row.fr.lock .m2 span i{background:#8a7868}
+
+/* ---- превью рисованных иконок ---- */
+.pi{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.it.pic{padding:0;background:radial-gradient(circle at 50% 45%,var(--rg),rgba(20,13,11,.9) 70%)}
+.it.pic .pi{width:118%;height:118%;margin:-9%}
+.it.pic.sm .pi{width:120%;height:120%}
+.it.none.pic .pi{opacity:.22;filter:grayscale(1)}
+.ut.pic{background:none;width:46px;height:46px}.ut.pic .pi{width:120%;height:120%;margin:-10%}
+#skills button .pi{width:44px;height:44px;margin-top:-2px}
+@media (min-aspect-ratio:5/4) and (min-width:720px){#skills button .pi{width:52px;height:52px}}
+#skills button[data-st="cd"] .pi,#skills button[data-st="na"] .pi{filter:saturate(.5) brightness(.8)}
+#chest .ci{width:30px;height:30px;margin:-4px 0 -4px -4px}
+/* валюта — картинки везде */
+i.coin,i.soul,i.nectar,.buy i.coin,.buy:disabled i.coin,.buy i.soul,.buy i.nectar,.buy:disabled i.soul{width:16px;height:16px;border-radius:0;box-shadow:none;transform:none;opacity:1;background:center/contain no-repeat;vertical-align:-3px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}
+i.coin,.buy i.coin,.buy:disabled i.coin{background-image:url(img/icons/coin_s.webp)}
+i.soul,.buy i.soul,.buy:disabled i.soul{background-image:url(img/icons/icon_souls_s.webp)}
+i.nectar,.buy i.nectar{background-image:url(img/icons/icon_nectar_s.webp)}
+.buy:disabled i.coin,.buy:disabled i.soul,.buy:disabled i.nectar{opacity:.7}
+.day b i.coin{width:12px;height:12px}.day span i.soul,.day span i.nectar{width:11px;height:11px}
+.cur i.coin,.cur i.soul,.cur i.nectar{width:26px;height:26px;vertical-align:middle}
+.cur i.coin{background-image:url(img/icons/coin.webp)}.cur i.soul{background-image:url(img/icons/icon_souls.webp)}.cur i.nectar{background-image:url(img/icons/icon_nectar.webp)}
+#fairy{font-size:0;filter:none;mix-blend-mode:screen}#fairy img{width:96px;height:96px;animation:flut .5s ease-in-out infinite alternate}
+@keyframes flut{to{transform:translateY(-4px) scale(1.04);filter:brightness(1.25)}}
 @media (prefers-reduced-motion:reduce){#monster,#hero,#chest,#tip,#bossban.on,.shake,.it,.it::after{animation:none!important}}
+
+small.rw i.coin,small.rw i.nectar{width:14px;height:14px}
+
+#toast{display:flex;align-items:center;gap:6px}#toast .tfi{width:48px;height:48px;margin:-12px 0;filter:drop-shadow(0 0 6px rgba(255,210,120,.6))}#toast i.coin,#toast i.nectar{width:20px;height:20px}
+
+.cosoff .soon{flex:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--mut)}.cosoff .soon .ico{width:20px;height:20px}
