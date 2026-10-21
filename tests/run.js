@@ -616,6 +616,8 @@ run('openCfg()');ok('VK: «Tell friends» in settings',els.mbox.innerHTML.includ
 ctx.__vk.calls=[];ctx.__vk.sub({detail:{type:'VKWebAppViewHide'}});ok('VK: app hidden -> forced save',true);
 run('PF.noAds=true');ctx.__vk.calls=[];got=0;run('rewarded(()=>__got())');ok('VK_ADS off: no ad request, no reward, message',got===0&&!ctx.__vk.calls.length);run('tab="rew";tabRender()');ok('VK_ADS off: rewards tab without video buttons',!els.list.innerHTML.includes('hermesAd()'));run('PF.noAds=false');
 {const b=fs.readFileSync(ROOT+'/build.sh','utf8');ok('VK build: bridge bundled locally, ads switch VK_ADS=0',b.includes('cp vendor/vk-bridge.min.js dist/vk/')&&b.includes("s/const VK_ADS=true/const VK_ADS=false/")&&fs.existsSync(ROOT+'/vendor/vk-bridge.min.js'))}
+ok('VK mobile web: page shrinks to the visible height VK reports',run('vkH({avail_height:700,viewport_height:760},800)')===700&&run('vkH({viewport_height:760},800)')===760&&run('vkH({avail_height:800},800)')===0&&run('vkH({avail_height:100},800)')===0&&run('vkH(null,800)')===0);
+ok('VK: config requested and updates followed',fs.readFileSync(ROOT+'/game.js','utf8').includes("ty=='VKWebAppUpdateConfig')vkFit("));
 delete ctx.vkBridge;ctx.location={search:'',hostname:''};run('vkC=[];vkCloud=null');}
 run('PF.kind="local";PF.sdk=null;PF.noAds=false;PF.adblock=false');
 const css5=fs.readFileSync(ROOT+'/style.css','utf8'),htm5=fs.readFileSync(ROOT+'/index.html','utf8');

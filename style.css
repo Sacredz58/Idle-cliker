@@ -580,3 +580,5 @@ nav button.hl{animation:hlpi 1.1s ease-in-out infinite!important}
  #ads:has(#bRetry:not([hidden])) #bRetry{flex:1 1 100%;order:-1}
  body:has(#bRetry:not([hidden])) #tip{bottom:calc(var(--dockh,var(--dock)) + 8px)}
 }
+
+.diag{font-size:10px;color:var(--mut);opacity:.6;margin:4px 0 0}
