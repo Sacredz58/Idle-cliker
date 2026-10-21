@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# Собирает два релизных архива: для Яндекс Игр и для CrazyGames.
-# Консоль разработчика в обоих выключена. Запуск: bash build.sh
+# Собирает релизные архивы: Яндекс Игры, CrazyGames и Игры ВКонтакте.
+# Консоль разработчика во всех выключена. Запуск: bash build.sh
+# Результат: build/yandex-games.zip, build/crazygames.zip, build/vk-games.zip
+#            dist/site — сайт для GitHub Pages: корень = Яндекс, /vk/ = ВКонтакте
 set -euo pipefail
 cd "$(dirname "$0")"
 YA_SDK='<script src="https://yandex.ru/games/sdk/v2"></script>'
 CG_SDK='<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>'
+VK_SDK='<script src="vk-bridge.min.js"></script>'
 grep -qF "$YA_SDK" index.html
 
-rm -rf dist build && mkdir -p dist/yandex dist/crazygames build
-for t in yandex crazygames; do
-  cp -r index.html style.css game.js img fonts "dist/$t/"
+rm -rf dist build && mkdir -p dist/yandex dist/crazygames dist/vk build
+for t in yandex crazygames vk; do
+  cp -r index.html style.css game.js img fonts music sfx "dist/$t/"
   sed -i 's/const DEV_ALLOWED=true/const DEV_ALLOWED=false/' "dist/$t/game.js"
   grep -q "const DEV_ALLOWED=false" "dist/$t/game.js"
 done
@@ -30,6 +33,27 @@ grep -qF "$CG_SDK" dist/crazygames/index.html
 grep -qF '<html lang="en" translate="no"' dist/crazygames/index.html
 ! grep -q "yandex.ru" dist/crazygames/index.html
 
+# ВКонтакте: VK Bridge (лежит в vendor/, без внешних CDN) вместо яндексовского SDK
+cp vendor/vk-bridge.min.js dist/vk/
+python3 - "$YA_SDK" "$VK_SDK" <<'PYVK'
+import sys
+ya, vk = sys.argv[1:3]
+p = 'dist/vk/index.html'
+h = open(p, encoding='utf-8').read().replace(ya, vk)
+open(p, 'w', encoding='utf-8').write(h)
+PYVK
+grep -qF "$VK_SDK" dist/vk/index.html
+! grep -q "yandex.ru" dist/vk/index.html
+! grep -qi "crazygames" dist/vk/index.html
+# реклама ВКонтакте: по умолчанию включена; до подключения монетизации можно собрать без неё — VK_ADS=0 bash build.sh
+grep -q "const VK_ADS=true" dist/vk/game.js
+if [ "${VK_ADS:-1}" = "0" ]; then sed -i 's/const VK_ADS=true/const VK_ADS=false/' dist/vk/game.js; grep -q "const VK_ADS=false" dist/vk/game.js; echo "ВКонтакте: реклама ВЫКЛЮЧЕНА"; else echo "ВКонтакте: реклама включена"; fi
+
 (cd dist/yandex && zip -qr ../../build/yandex-games.zip .)
 (cd dist/crazygames && zip -qr ../../build/crazygames.zip .)
+(cd dist/vk && zip -qr ../../build/vk-games.zip .)
+
+# сайт для GitHub Pages: корень — версия Яндекса (как раньше), /vk/ — версия ВКонтакте.
+# Адрес https://<логин>.github.io/<репозиторий>/vk/index.html указывается в настройках игры VK → «Размещение».
+mkdir -p dist/site && cp -r dist/yandex/. dist/site/ && cp -r dist/vk dist/site/vk
 ls -la build
