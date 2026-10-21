@@ -238,9 +238,12 @@ let TN;
 let QD;
 let AC;
 function adUI(){const n=NOW(),h=S.hermes-n,c=S.chest-n,B=$('bHermes'),C=$('bChest'),
- nw=typeof innerWidth=='number'&&innerWidth<520,th=h>0?t('Гермес +100% · ','Hermes +100% · ')+hms(h):nw?t('Гермес ×2 · 10 мин','Hermes ×2 · 10 min'):t('Буст Гермеса +100% · 10 мин','Hermes Boost +100% · 10 min'),tc=c>0?t('Сундук Харона · ','Charon\'s Chest · ')+hms(c):t('Сундук Харона',"Charon's Chest");
+ bw=B.offsetWidth||999,xs=bw<150, // узкая кнопка (строка под «Перейти к битве») — короткие подписи
+ nw=typeof innerWidth=='number'&&innerWidth<520||bw<230,th=h>0?(xs?t('Гермес · ','Hermes · '):t('Гермес +100% · ','Hermes +100% · '))+hms(h):xs?t('Гермес ×2','Hermes ×2'):nw?t('Гермес ×2 · 10 мин','Hermes ×2 · 10 min'):t('Буст Гермеса +100% · 10 мин','Hermes Boost +100% · 10 min'),cw=C.offsetWidth||999,tc=c>0?(cw<110?t('Сундук · ','Chest · '):t('Сундук Харона · ','Charon\'s Chest · '))+hms(c):cw<110?t('Сундук','Chest'):t('Сундук Харона',"Charon's Chest");
  if(B.textContent!==th){B.textContent=th;B.disabled=h>0;B.classList.toggle('act',h>0);B.style.setProperty&&B.style.setProperty('--w',Math.min(100,h/6e3)+'%')}
- if(C.textContent!==tc){C.textContent=tc;C.disabled=c>0}}
+ if(C.textContent!==tc){C.textContent=tc;C.disabled=c>0}
+ const R=$('bRetry'),rw=R.offsetWidth||999,tr=rw<170?t('К боссу!','Boss!'):t('Перейти к битве с боссом','Fight the boss');if(R.textContent!==tr)R.textContent=tr;
+ const V=$('bSave'),ts=(V.offsetWidth||999)<110?t('+15 сек','+15 s'):t('Босс +15 сек','Boss +15 s');if(V.textContent!==ts)V.textContent=ts}
 // Ограничитель кликов (без проверок «я не бот»), настройки:
 const CLICK_GAP=100,   // мин. интервал между засчитанными кликами, мс (макс. 10 кликов/с)
  CLICK_WIN=1e4,CLICK_MAX=60, // не более 60 кликов за любые 10 с (в среднем 6/с)
@@ -395,8 +398,9 @@ const hCost=i=>[2e3,1e4,5e4][i]*Math.pow(6,S.b[i][0]),hTime=i=>Math.min(21600,18
 function build(i){const b=S.b[i],c=hCost(i);if(b[1]||S.gold<c)return;S.gold-=c;b[1]=NOW()+hTime(i)*1e3;qp('h');upd()}
 // монстр и герой не заходят под заголовок арены (имя, этаж, здоровье, таймер босса): их высота ограничена местом под ним.
 // Нижний край спрайта не двигается; на ПК места хватает и ограничение не срабатывает. --mmax/--hmax читает style.css
-let fitK='';
-function fitArena(){try{const A=$('arena'),F=$('foe');if(!A||!F)return;const a=A.getBoundingClientRect();if(!a.height)return;
+let fitK='',fitD=0;
+function fitArena(){try{const d=$('dock'),dh=d&&Math.round(d.getBoundingClientRect().height);if(dh&&dh!==fitD){fitD=dh;document.documentElement.style.setProperty('--dockh',dh+'px')}}catch(e){} // реальная высота нижней панели арены — по ней поднимается подсказка
+ try{const A=$('arena'),F=$('foe');if(!A||!F)return;const a=A.getBoundingClientRect();if(!a.height)return;
  const top=F.getBoundingClientRect().bottom-a.top+4,k=Math.round(a.height)+'|'+Math.round(top);if(k===fitK)return;fitK=k;
  [['monster','--mmax'],['hero','--hmax']].forEach(([id,v])=>{const e=$(id),b=parseFloat(getComputedStyle(e).bottom)||0;A.style.setProperty(v,Math.max(90,Math.floor(a.height-b-top))+'px')})}catch(e){}}
 try{window.addEventListener('resize',()=>{fitK='';fitArena()})}catch(e){}
