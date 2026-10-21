@@ -341,11 +341,11 @@ function shopH(){let h=`<div class="necc"><span class="it nc big pic"><img class
  PACKS.forEach((p,i)=>{h+=`<div class="row up shp"><span class="it nc">${ico('amphora')}</span><div class="ub"><b>${p[0]} ${t('Нектара','Nectar')}</b></div><button class="buy" onclick="buyPack(${i})"><b>${t('Купить','Buy')}</b></button></div>`})}return h}
 function buyShop(i){const a=SHOP[i];if(S.nec<a[2])return;
  if(a[1]=='chest'){const k=a[3];S.nec-=a[2];qp('o');const tx=acGive(k);modal(`<h3>${AC[k][0]}</h3><p>${tx}</p>${okB()}`)}
- else if(a[1]=='pcd'){if(pcd()<=0)return;S.nec-=a[2];S.pt=0}
+ else if(a[1]=='pcd'){if(pcd()<=0)return;S.nec-=a[2];S.pt=0;toast(ico('check')+' '+t('Перерождение снова доступно','Rebirth is available again'),true)}
  else if(a[1]=='build'){if(!S.b.some(b=>b[1]))return;S.nec-=a[2];S.b.forEach(b=>{if(b[1])b[1]=1});hTick()}
- else if(a[1]=='quests'){S.nec-=a[2];S.q=null;qn()}
- else if(a[1]=='gf'){S.nec-=a[2];S.gf=Math.max(S.gf,NOW())+36e5}
- else if(a[1]=='hermes'){S.nec-=a[2];S.hermes=Math.max(S.hermes,NOW())+36e5}
+ else if(a[1]=='quests'){S.nec-=a[2];S.q=null;qn();toast(ico('scroll')+' '+t('Задания дня обновлены — 8 новых во вкладке «Задания»','Daily quests refreshed — 8 new ones in the Quests tab'),true);navBadges()}
+ else if(a[1]=='gf'){S.nec-=a[2];S.gf=Math.max(S.gf,NOW())+36e5;toast(ico('coins')+' '+t('Золотая лихорадка: золото ×2 на час','Gold Rush: gold ×2 for an hour'),true)}
+ else if(a[1]=='hermes'){S.nec-=a[2];S.hermes=Math.max(S.hermes,NOW())+36e5;toast(ico('bolt')+' '+t('Гермес на час: урон ×2','Hermes for an hour: damage ×2'),true)}
  upd()}
 // «Достроить» во вкладке «Дом» — только эту постройку
 function finB(i){const a=SHOP.find(x=>x[1]=='build'),b=S.b[i];if(!a||!b||!b[1]||S.nec<a[2])return;S.nec-=a[2];b[1]=1;hTick();upd()}

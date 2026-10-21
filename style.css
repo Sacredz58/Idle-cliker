@@ -582,3 +582,6 @@ nav button.hl{animation:hlpi 1.1s ease-in-out infinite!important}
 }
 
 .diag{font-size:10px;color:var(--mut);opacity:.6;margin:4px 0 0}
+/* длинные уведомления (покупки в лавке Нектара) переносятся, а не вылезают за край на телефоне */
+#toast{display:block;white-space:normal;width:max-content;max-width:calc(100% - 24px);text-align:center;line-height:1.3}
+#toast .tfi{vertical-align:middle}

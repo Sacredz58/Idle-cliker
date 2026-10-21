@@ -651,6 +651,9 @@ ok('feats tab keeps the leaderboard row outside CrazyGames',th.includes('showLB(
 run('PF.kind="cg";tabRender()');ok('CG: feats tab without the leaderboard',!els.list.innerHTML.includes('showLB()')&&els.list.innerHTML.includes('achClaim'));run('PF.kind="local"');
 reset();run('S.st={};S.achN={};S.pc=0;S.run=100;S.max=100;S.pt=0;prestige();achCheck()');ok('prestige counter + first rebirth feat',run('S.pc')===1&&run('S.achN.p1')===1);
 run('setTexts("en");tab="top";tabRender()');ok('feats in English',!/[а-яё]/i.test(els.list.innerHTML)&&run('achLbl()')==='Feats');run('setTexts("ru")');
+reset();run('S.nec=50;S.q=null;qn()');{const q0=run('JSON.stringify(S.q.p)');const qi=run("SHOP.findIndex(a=>a[1]=='quests')");els.toast.innerHTML='';run('buyShop('+qi+')');
+ok('shop «New daily quests»: Nectar spent, fresh set, confirmation toast',run('S.nec')===45&&run('S.q.d.every(x=>!x)')&&els.toast.innerHTML.includes('Задания дня обновлены'));}
+{const ok2=[];for(const k of ['gf','hermes']){els.toast.innerHTML='';run("buyShop(SHOP.findIndex(a=>a[1]=='"+k+"'))");ok2.push(els.toast.innerHTML.length>0)}ok('shop boosts show a confirmation toast',ok2.every(Boolean));}
 // ---------- tips ----------
 const T0='S.tut=0;S.td={};S.tipF=0;S.st={};S.gold=0;S.w[0]=1;S.g=S.g.map(()=>0);S.floor=1;S.max=1;S.dl="";S.loot=[];S.inv=[];S.eq=[-1,-1,-1,-1,-1,-1];S.nec=0;S.ach={};S.achN={};S.farm=false;inBoss=false;tipCur=null;spawn();';
 els.fairy.hidden=true;
