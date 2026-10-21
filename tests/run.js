@@ -624,6 +624,7 @@ const css5=fs.readFileSync(ROOT+'/style.css','utf8'),htm5=fs.readFileSync(ROOT+'
 ok('CG: battle-screen video buttons hidden by CSS',css5.includes('body.pf-cg #bHermes,body.pf-cg #bChest,body.pf-cg #bSave{display:none}'));
 ok('landscape layout: arena | upgrades | section rail on wide screens',css5.includes('@media (min-aspect-ratio:5/4)')&&css5.includes('"arena panel nav"')&&css5.includes('"dock panel nav"'));
 ok('wide layout: after a boss loss «Fight the boss» gets its own full row, video buttons below (VK 900×650 overlap fix)',css5.includes('#ads:has(#bRetry:not([hidden])) #bRetry{flex:1 1 100%;order:-1}')&&css5.includes('var(--dockh,var(--dock))'));
+{const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('no icon flicker: list, skill bar and reward timers are patched in place, not rebuilt',g.includes('function morph(a,b)')&&g.includes('setList(L,(tab==')&&g.includes('e._h=h;setList(e,h)')&&g.includes('b._h=tx;setList(b,tx)')&&!/\bL\.innerHTML=/.test(g.replace('}catch(e){}L.innerHTML=h}','')))}
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
 ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
 }

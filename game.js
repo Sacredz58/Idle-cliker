@@ -85,11 +85,25 @@ function upRow(k,a,i,L){const nx=25-L%25;
   `<div class="m2"><span><i style="width:${(L%25)*4}%"></i></span><small>${t('×2 через ','×2 in ')}${nx} ${t('ур.','lv.')}</small></div>${k=='g'?psH(i):''}</div>`+
   `<button class="buy" data-k="${k}" data-i="${i}" onclick="buy('${k}',${i})"></button></div>`}
 const NEXT_SHOW=2;
+// Обновление списка без пересоздания: меняем только то, что отличается. Раньше каждый новый этаж заново
+// создавал все строки — картинки богов/оружия/вещей перезагружались и моргали. Кнопки покупки (data-k)
+// наполняет updBtns — их содержимое не трогаем.
+function morph(a,b){if(a.nodeType!==b.nodeType||a.nodeName!==b.nodeName){a.replaceWith(b);return}
+ if(a.nodeType===3||a.nodeType===8){if(a.nodeValue!==b.nodeValue)a.nodeValue=b.nodeValue;return}
+ if(a.nodeType!==1)return;
+ for(const at of [...a.attributes])if(!b.hasAttribute(at.name))a.removeAttribute(at.name);
+ for(const at of [...b.attributes])if(a.getAttribute(at.name)!==at.value)a.setAttribute(at.name,at.value);
+ if(a._k!==undefined&&b.childNodes.length===0)return;
+ kids(a,b)}
+function kids(a,b){const ac=[...a.childNodes],bc=[...b.childNodes];
+ for(let i=0;i<bc.length;i++){if(i<ac.length)morph(ac[i],bc[i]);else a.appendChild(bc[i])}
+ for(let i=bc.length;i<ac.length;i++)ac[i].remove()}
+function setList(L,h){try{const T=document.createElement('template');if(T.content&&L.childNodes&&L.replaceChildren){T.innerHTML=h;kids(L,T.content);return}}catch(e){}L.innerHTML=h}
 function tabRender(){const L=$('list');let h='';dirty=false;
  if(tab=='hero'||tab=='gods'){const k=tab=='hero'?'w':'g',arr=tab=='hero'?WEAPONS:GODS,lv=tab=='hero'?S.w:S.g;
   if(tab=='hero'){const up=SK.some((a,i)=>skLv(i)>0&&S.sl[i]<SKMAX&&S.souls>=skCost(i));
    h+=panH('hero','<div class="seg"><button class="'+(htab=='w'?'on':'')+'" onclick="setHT(\'w\')">'+t('Оружие','Weapons')+'</button><button class="'+(htab=='s'?'on':'')+'" onclick="setHT(\'s\')">'+t('Умения','Skills')+(up?'<i class="dot"></i>':'')+'</button></div>'+(htab=='w'?qsH():''));
-   if(htab=='s'){L.innerHTML=h+skH();return}}
+   if(htab=='s'){setList(L,h+skH());return}}
   else h+=panH('gods',qsH());
   // видны всё купленное и NEXT_SHOW следующих позиций; остальные открываются по мере покупки
   const last=lv.reduce((m,l,i)=>l>0?i:m,-1),vis=Math.min(arr.length,last+1+NEXT_SHOW),left=arr.length-vis;
@@ -97,7 +111,7 @@ function tabRender(){const L=$('list');let h='';dirty=false;
   if(left>0)h+=`<div class="row up more"><span class="it">${ico('lock')}</span><div class="ub"><b>${k=='w'?t('Ещё оружия: ','More weapons: '):t('Ещё богов: ','More gods: ')}${left}</b><small>${k=='w'?t('Новое оружие откроется, когда купите следующее','Buy the next weapon to reveal more'):t('Новый бог откроется, когда наймёте следующего','Hire the next god to reveal more')}</small></div></div>`}
  else if(tab=='pres')h=altH()+talH()
  else if(tab=='inv')h=invH();else if(tab=='house')h=houseH();else if(tab=='quest')h=questH();else if(tab=='rew')h=rewH();else h=atab=='s'?statH():achH();
- L.innerHTML=(tab=='hero'||tab=='gods'?'':panH(tab,tab=='top'?'<div class="seg"><button class="'+(atab=='a'?'on':'')+'" onclick="setAT(\'a\')">'+t('Подвиги','Feats')+'</button><button class="'+(atab=='s'?'on':'')+'" onclick="setAT(\'s\')">'+t('Статистика','Stats')+'</button></div>':''))+h;updBtns()}
+ setList(L,(tab=='hero'||tab=='gods'?'':panH(tab,tab=='top'?'<div class="seg"><button class="'+(atab=='a'?'on':'')+'" onclick="setAT(\'a\')">'+t('Подвиги','Feats')+'</button><button class="'+(atab=='s'?'on':'')+'" onclick="setAT(\'s\')">'+t('Статистика','Stats')+'</button></div>':''))+h);updBtns()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>navGo(b.dataset.t));
 function prestige(){const g=soulGain();if(g<1||pcd()>0)return;
  const done=()=>{if(pcd()>0)return;const f0=startF(),k={pt:NOW(),cheat:S.cheat,max:S.max,souls:S.souls+g,tot:S.tot+g,hermes:S.hermes,chest:S.chest,ac:S.ac,loot:S.loot,vol:S.vol,lang:S.lang,st:S.st,achN:S.achN,ach:S.ach,tut:S.tut,td:S.td,tipF:S.tipF,pc:S.pc+1,sl:S.sl,nec:S.nec,own:S.own,skin:S.skin,theme:S.theme,gf:S.gf,adT:S.adT,t:S.t,inv:S.inv,eq:S.eq,b:S.b,day:S.day,dl:S.dl,q:S.q};S=Object.assign(S0(),k);S.farm=false;S.floor=f0;S.sf=f0;S.run=f0;S.gold=skipGold(f0);spawn();tabRender();save()};
@@ -286,7 +300,7 @@ function skUI(){const n=NOW(),B=$('skills').children;SK.forEach((a,i)=>{const e=
  ov=st=='cd'?'<span class="sk-c" style="--p:'+Math.round(Math.min(1,cd/full)*100)+'%">'+hms(cd)+'</span>':'',
  h=(lock?ico('lock'):'<img class="pi" src="img/icons/skill_'+(i+1)+'.webp" alt="">')+'<span class="sk-n">'+nm+'</span><span class="sk-k">'+(i+1)+'</span>'+ov,
  tl=a[0]+' — '+a[5]+(lock?t(' · откроется на этаже ',' · unlocks at floor ')+SKU[i]:na&&!on&&cd<=0?t(' · только в бою с боссом',' · boss fights only'):'');
- if(e._h!==h){e._h=h;e.innerHTML=h}if(e.title!==tl){e.title=tl;e.ariaLabel=tl}e.dataset.st=st;e.disabled=lock||cd>0||na})}
+ if(e._h!==h){e._h=h;setList(e,h)}if(e.title!==tl){e.title=tl;e.ariaLabel=tl}e.dataset.st=st;e.disabled=lock||cd>0||na})}
 function useSk(i){const a=SK[i],n=NOW();if(skLv(i)<1||S.sc[i]>n||(i==0&&wait>0))return;
  S.sc[i]=n+a[3]*1e3*Math.max(.5,1-.03*S.t[6])*(1-.01*Math.min(30,S.sl[i]))*(1-.1*pt(16));S.se[i]=n+a[4]*1e3*(1+.1*S.t[5])*(1+.02*S.sl[i])*(1+.2*pt(6));
  if(i==0)dealt(clickD()*20*pw(0)*(1+.1*S.t[5]),true,150,110);
@@ -414,7 +428,7 @@ function fitArena(){try{const d=$('dock'),dh=d&&Math.round(d.getBoundingClientRe
  [['monster','--mmax'],['hero','--hmax']].forEach(([id,v])=>{const e=$(id),b=parseFloat(getComputedStyle(e).bottom)||0;A.style.setProperty(v,Math.max(90,Math.floor(a.height-b-top))+'px')})}catch(e){}}
 try{window.addEventListener('resize',()=>{fitK='';fitArena()})}catch(e){}
 function hTick(){const n=NOW();let d=false;tipUI();fitArena();if(hk%5==0){S.st.bc=Math.max(S.st.bc||0,clickD());S.st.bd=Math.max(S.st.bd||0,dps());if(tab=='top'&&atab=='s')dirty=true}if(hk%5==0)navBadges();if(hk%10==0)achCheck();if(++hk%4==0&&dps()>0)heroAtk();if($('fairy').hidden&&n>fnx&&!paused)fairySpawn();lbFlush();if(dirty&&!busy()){dirty=false;tabRender()}S.b.forEach(b=>{if(b[1]&&b[1]<=n){b[0]++;b[1]=0;d=true}});
- if(tab=='rew')document.querySelectorAll('[data-ab]').forEach(b=>{const i=+b.dataset.ab,c=S.ac[i]-n,tx=abH(c,adsOff());if(b._h!==tx){b._h=tx;b.innerHTML=tx}b.disabled=c>0||adsOff()});if(tab=='pres'){const r=pcd(),g=soulGain();document.querySelectorAll('[data-pc]').forEach(e=>e.textContent=r>0?t('Кулдаун перерождения: ','Rebirth cooldown: ')+cdTxt(r):'');document.querySelectorAll('[data-pb]').forEach(e=>e.disabled=r>0||g<1)}if(tab!='house')return;if(d)tabRender();else{document.querySelectorAll('[data-ft]').forEach(e=>e.textContent=t('Строится: ','Building: ')+hms(Math.max(0,+e.dataset.ft-n)));document.querySelectorAll('[data-fb]').forEach(e=>e.style.width=Math.round(Math.min(1,1-(+e.dataset.fb-n)/+e.dataset.dur)*100)+'%')}}
+ if(tab=='rew')document.querySelectorAll('[data-ab]').forEach(b=>{const i=+b.dataset.ab,c=S.ac[i]-n,tx=abH(c,adsOff());if(b._h!==tx){b._h=tx;setList(b,tx)}b.disabled=c>0||adsOff()});if(tab=='pres'){const r=pcd(),g=soulGain();document.querySelectorAll('[data-pc]').forEach(e=>e.textContent=r>0?t('Кулдаун перерождения: ','Rebirth cooldown: ')+cdTxt(r):'');document.querySelectorAll('[data-pb]').forEach(e=>e.disabled=r>0||g<1)}if(tab!='house')return;if(d)tabRender();else{document.querySelectorAll('[data-ft]').forEach(e=>e.textContent=t('Строится: ','Building: ')+hms(Math.max(0,+e.dataset.ft-n)));document.querySelectorAll('[data-fb]').forEach(e=>e.style.width=Math.round(Math.min(1,1-(+e.dataset.fb-n)/+e.dataset.dur)*100)+'%')}}
 // ======== ДОМ: постройки с вечными бонусами; идёт стройка — полоска и таймер ========
 const BNI=['anvil','sprout','book'];
 function houseH(){const sh=SHOP.findIndex(x=>x[1]=='build'),sc=SHOP[sh][2];
