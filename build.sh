@@ -2,7 +2,7 @@
 # Собирает релизные архивы: Яндекс Игры, CrazyGames и Игры ВКонтакте.
 # Консоль разработчика во всех выключена. Запуск: bash build.sh
 # Результат: build/yandex-games.zip, build/crazygames.zip, build/vk-games.zip
-#            dist/site — сайт для GitHub Pages: корень = Яндекс, /vk/ = ВКонтакте
+#            dist/yandex — сайт для GitHub Pages: корень = Яндекс, /vk/ = ВКонтакте (добавляется после упаковки)
 set -euo pipefail
 cd "$(dirname "$0")"
 YA_SDK='<script src="https://yandex.ru/games/sdk/v2"></script>'
@@ -53,7 +53,8 @@ if [ "${VK_ADS:-1}" = "0" ]; then sed -i 's/const VK_ADS=true/const VK_ADS=false
 (cd dist/crazygames && zip -qr ../../build/crazygames.zip .)
 (cd dist/vk && zip -qr ../../build/vk-games.zip .)
 
-# сайт для GitHub Pages: корень — версия Яндекса (как раньше), /vk/ — версия ВКонтакте.
-# Адрес https://<логин>.github.io/<репозиторий>/vk/index.html указывается в настройках игры VK → «Размещение».
-mkdir -p dist/site && cp -r dist/yandex/. dist/site/ && cp -r dist/vk dist/site/vk
+# GitHub Pages публикует папку dist/yandex (см. .github/workflows/deploy.yml). Уже ПОСЛЕ упаковки архивов
+# кладём туда версию ВКонтакте подпапкой /vk/ — её адрес https://<логин>.github.io/<репозиторий>/vk/index.html
+# указывается в настройках игры VK → «Размещение» (хостинг VK не принимает аудиофайлы, поэтому игра живёт на Pages).
+cp -r dist/vk dist/yandex/vk
 ls -la build
