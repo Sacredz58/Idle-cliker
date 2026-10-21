@@ -193,7 +193,7 @@ simNow+=601e3;run('openAc(0)');ok('ad reward available after 10 min',run('S.gold
 reset();run('S.max=250;S.gold=0;S.souls=0;S.tot=0;S.inv=[]');const n2=simNow;
 run('openAc(1)');ok('bronze chest: gold, 1 item, 1h',run('S.gold')>0&&run('S.inv.length')===1&&run('S.ac[1]')-n2===36e5);
 run('openAc(2)');ok('silver chest: 2 items >= rare, 3h',run('S.inv.length')===3&&run('S.inv.slice(1).every(x=>x.r>=1)')&&run('S.ac[2]')-n2===108e5);
-run('openAc(3)');ok('gold chest: 3 items >= epic, souls, 8h',run('S.inv.length')===6&&run('S.inv.slice(3).every(x=>x.r>=2)')&&run('S.souls')===3&&run('S.tot')===3&&run('S.ac[3]')-n2===288e5);
+run('openAc(3)');ok('gold chest: 3 items >= epic, souls, 8h',run('S.inv.length')===6&&run('S.inv.slice(3).every(x=>x.r>=2)')&&run('S.souls')===6&&run('S.tot')===6&&run('chestSouls()')===6&&run('S.ac[3]')-n2===288e5);
 reset();run('S.ac=[1,2,3,4];S.run=100;S.max=100;prestige()');ok('chest cooldowns survive prestige',run('S.ac.join()')==='1,2,3,4');
 reset();run('S.max=250;tab="rew";tabRender()');const hh=els.list.innerHTML;ok('rewards tab lists ad reward + 3 chests',hh.includes('Награда за видео')&&hh.includes('Бронзовый сундук')&&hh.includes('Серебряный сундук')&&hh.includes('Золотой сундук')&&hh.includes('10:00')&&hh.includes('img/ui/rew_video.webp')&&hh.includes('img/ui/rew_bronze.webp')&&hh.includes('img/ui/rew_gold.webp')&&!/[📺🪵🥈🥇🍯]/u.test(hh));
 run('openAc(0)');ok('rewards shop has no «finish buildings» (it lives in the House tab)',!els.list.innerHTML.includes('buyShop(4)')&&!els.list.innerHTML.includes('Достроить все здания'));
@@ -217,7 +217,7 @@ els.modal.hidden=true;run('craftAll()');ok('second merge-all is a no-op (no popu
 run('tab="inv";tabRender()');ok('merge-all button disabled when nothing to merge',/disabled onclick="craftAll\(\)"/.test(els.list.innerHTML));
 run('for(let i=0;i<3;i++)S.inv.push({s:1,r:0});tabRender()');ok('merge-all button enabled when 3 identical',!/disabled onclick="craftAll\(\)"/.test(els.list.innerHTML)&&els.list.innerHTML.includes('Объединить все'));
 reset();run('S.max=250;tab="quest";tabRender()');const qh=els.list.innerHTML;
-ok('daily login shows today\'s reward + 7-day strip',qh.includes('<i class="coin"></i>'+run('fmt(mHP(249)*5)')+'</span>')&&qh.includes('class="days"')&&qh.includes('<i class="soul"></i>5 <i class="nectar"></i>10')&&qh.includes('class="day cur"')&&(qh.match(/class="row up qr/g)||[]).length===8&&qh.includes('Все задания дня: 0/8'));
+ok('daily login shows today\'s reward + 7-day strip',qh.includes('<i class="coin"></i>'+run('fmt(mHP(249)*5)')+'</span>')&&qh.includes('class="days"')&&qh.includes('<i class="soul"></i>'+run('fmt(daySouls())')+' <i class="nectar"></i>10')&&qh.includes('class="day cur"')&&(qh.match(/class="row up qr/g)||[]).length===8&&qh.includes('Все задания дня: 0/8'));
 run('dClaim()');const qh2=els.list.innerHTML;ok('after claiming: day 1 marked, tomorrow reward shown',qh2.includes('class="day got"')&&qh2.includes('Завтра (день 2)')&&qh2.includes('≈<i class="coin"></i>'+run('fmt(mHP(249)*5*2)')));
 reset();run('S.max=250;S.inv=[]');run('openAc(1)');const bh=els.mbox.innerHTML;
 ok('bronze chest lists the actual item',(bh.match(/<br>/g)||[]).length===1&&run('SL.some(n=>'+JSON.stringify(bh)+'.includes(n))')&&run('RN.some(n=>'+JSON.stringify(bh)+'.includes(n))')&&!bh.includes('предметов'));
@@ -418,7 +418,9 @@ reset();run('S.max=500;S.souls=50;tab="hero";htab="s";tabRender()');ok('hero tab
 // nectar sources
 reset();run('rewarded(()=>{})');ok('video reward: +1 nectar',run('S.nec')===1);
 reset();run('S.max=250;qn();S.q.p.forEach(qi=>{S.q[QD[qi][1]]=Math.max(S.q[QD[qi][1]],QD[qi][2])})');for(let j=0;j<8;j++)run(`qClaim(${j})`);ok('8 daily quests: 8 nectar + 5 bonus for all',run('S.nec')===13);run('qClaim(0)');ok('bonus is paid once',run('S.nec')===13);
-reset();run('S.day=6;S.dl=new Date(NOW()-864e5).toDateString()');run('dClaim()');ok('day 7 login: +10 nectar +5 souls',run('S.nec')===10&&run('S.souls')===5);
+reset();run('S.day=6;S.dl=new Date(NOW()-864e5).toDateString()');run('dClaim()');ok('day 7 login: +10 nectar +5 souls (minimum at low floors)',run('S.nec')===10&&run('S.souls')===5);
+reset();run('S.max=723;S.souls=0;S.nec=0;S.day=6;S.dl=new Date(NOW()-864e5).toDateString()');run('dClaim()');ok('day 7 souls scale with the best floor (723 -> 84 = 25% of a full rebirth)',run('S.souls')===84&&run('daySouls()')===84);
+ok('gold chest souls scale with the best floor (723 -> 33, 2000 -> 210)',run('chestSouls()')===33&&run('S.max=2000;chestSouls()')===210&&run('S.max=10;chestSouls()')===2);
 reset();run('S.nec=1500;draw()');ok('nectar shown in the stats bar',els.nec.textContent==='1.50K');
 // shop
 reset();run('S.nec=10;S.max=250;S.inv=[]');dx2('help');run('buyShop(0)');ok('shop: bronze chest for nectar (no ad), no cooldown',run('S.nec')===6&&run('S.inv.length')===1&&run('S.ac[1]')===0);

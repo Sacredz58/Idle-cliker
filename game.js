@@ -333,7 +333,7 @@ function shopH(){let h=`<div class="necc"><span class="it nc big pic"><img class
  h+=`<div class="sech"><b>${t('Лавка Нектара','Nectar shop')}</b><span>${t('за Нектар, без видео','for Nectar, no video')}</span></div>`;
  SHOP.forEach((a,i)=>{if(a[1]=='build')return; // «Достроить» есть прямо во вкладке «Дом»
   const cd=0,na=a[1]=='pcd'&&pcd()<=0||a[1]=='build'&&!S.b.some(b=>b[1]),dis=S.nec<a[2]||cd>0||na;
-  h+=`<div class="row up shp">${art(SHA[i])}<div class="ub"><b>${a[0]}</b><small>${a[1]=='chest'?AC[a[3]][1]+' · ':''}${SHD[i]}</small></div><button class="buy nec" ${dis?'disabled':''} onclick="buyShop(${i})">${cd>0?`<b>${hms(cd)}</b><span>${t('перезарядка','cooldown')}</span>`:`<b>${t('Купить','Buy')}</b><span><i class="nectar"></i>${a[2]}</span>`}</button></div>`});
+  h+=`<div class="row up shp">${art(SHA[i])}<div class="ub"><b>${a[0]}</b><small>${a[1]=='chest'?acD(a[3])+' · ':''}${SHD[i]}</small></div><button class="buy nec" ${dis?'disabled':''} onclick="buyShop(${i})">${cd>0?`<b>${hms(cd)}</b><span>${t('перезарядка','cooldown')}</span>`:`<b>${t('Купить','Buy')}</b><span><i class="nectar"></i>${a[2]}</span>`}</button></div>`});
  if(!COS_ON){} // облики выключены — раздел не показываем вовсе (заглушки «скоро» ревьюеры считают недоделкой)
  else [[t('Облик героя','Hero look'),0],[t('Тема арены','Arena theme'),1]].forEach(([nm,k])=>{h+=`<div class="sech"><b>${nm}</b><span>${t('за Нектар','for Nectar')}</span></div><div class="cosg">`;COS[k].forEach((c,i)=>{const own=S.own[k].includes(i),cur=(k?S.theme:S.skin)==i;
   h+=`<button class="cos${cur?' on':''}" ${!own&&S.nec<c[1]?'disabled':''} onclick="buyCos(${k},${i})">${k?`<span class="sw" style="background:${THB[i]}"></span><b>${c[0]}</b>`:`<span class="sk">${i?c[0]:'<i class="hi"></i>'}</span>`}<small>${own?(cur?t('Надето','Equipped'):t('Надеть','Equip')):'<i class="nectar"></i> '+c[1]}</small></button>`});h+='</div>'});
@@ -455,7 +455,7 @@ function qn(){if(!S.q||!S.q.p||S.q.p.length!=QN||NOW()-S.q.t>864e5)S.q={t:NOW(),
 // любой прогресс заданий/подвигов перерисует открытую вкладку на следующем тике (не во время нажатия в списке)
 function qp(k,n=1){qn();S.q[k]+=n;S.st[k]=(S.st[k]||0)+n;if(tab=='quest'||tab=='top')dirty=true}
 function qClaim(j){qn();const q=QD[S.q.p[j]];if(S.q.d[j]||S.q[q[1]]<q[2])return;S.q.d[j]=1;sfx('reward');S.gold+=rwG()*q[3];S.nec++;if(S.q.d.every(x=>x)&&!S.q.bn){S.q.bn=1;S.nec+=5}upd()}
-function acGive(i){sfx('reward');const g=rwG(),[gm,ni,mr,so]=[[4,0,0,0],[10,1,0,0],[30,2,1,0],[100,3,2,1]][i];S.gold+=g*gm;const its=[];for(let k=0;k<ni;k++)its.push(drop(mr));let t='<i class="coin"></i>'+fmt(g*gm);if(so){const x=1+Math.floor(S.max/100);S.souls+=x;S.tot+=x;t+=' · <i class="soul"></i>'+x}return t+its.map(it=>'<br>'+itm(it.s,it.r,1)+' '+SL[it.s]+' · '+RN[it.r]+' (+'+pct(RB[it.r])+'%)').join('')}
+function acGive(i){sfx('reward');const g=rwG(),[gm,ni,mr,so]=[[4,0,0,0],[10,1,0,0],[30,2,1,0],[100,3,2,1]][i];S.gold+=g*gm;const its=[];for(let k=0;k<ni;k++)its.push(drop(mr));let t='<i class="coin"></i>'+fmt(g*gm);if(so){const x=chestSouls();S.souls+=x;S.tot+=x;t+=' · <i class="soul"></i>'+x}return t+its.map(it=>'<br>'+itm(it.s,it.r,1)+' '+SL[it.s]+' · '+RN[it.r]+' (+'+pct(RB[it.r])+'%)').join('')}
 function openAc(i){if(S.ac[i]>NOW())return;rewarded(()=>{qp('o');S.ac[i]=NOW()+AC[i][2];const tx=acGive(i);modal(`<h3>${AC[i][0]}</h3><p>${tx}</p>${okB()}`);upd()})}
 // ======== НАГРАДЫ: видео-награды и сундуки (цвет по сорту), лавка Нектара, облики ========
 const abH=(c,off)=>c>0?`<b>${hms(c)}</b><span>${t('перезарядка','cooldown')}</span>`:`<b>${t('Открыть','Open')}</b><span>${off?t('недоступно','unavailable'):t('за видео','watch video')}</span>`;
@@ -466,14 +466,14 @@ function rewH(){const n=NOW(),off=adsOff();let h='';
  if(PF.kind=='cg'){const hh=S.hermes-n,cc=S.chest-n;
   h+=`<div class="row up shp">${art('rew_hermesad')}<div class="ub"><b>${t('Буст Гермеса','Hermes Boost')}</b><small>${t('×2 урона на 10 минут','×2 damage for 10 minutes')}</small></div><button class="buy" ${hh>0||off?'disabled':''} onclick="hermesAd()">${hh>0?`<b>${hms(hh)}</b><span>${t('действует','active')}</span>`:`<b>${t('Смотреть','Watch')}</b><span>${t('видео','video')}</span>`}</button></div>`;
   h+=`<div class="row up shp">${art('rew_charon')}<div class="ub"><b>${t('Сундук Харона',"Charon's Chest")}</b><small>${t('Золото раз в 4 часа','Gold every 4 hours')}</small></div><button class="buy" ${cc>0||off?'disabled':''} onclick="chestAd()">${cc>0?`<b>${hms(cc)}</b><span>${t('перезарядка','cooldown')}</span>`:`<b>${t('Смотреть','Watch')}</b><span>${t('видео','video')}</span>`}</button></div>`}
- return h+AC.map((a,i)=>{const c=S.ac[i]-n;return `<div class="row up shp">${art(ACA[i])}<div class="ub"><b>${a[0]}</b><small>${a[1]}</small><small class="nowv">${t('Перезарядка','Cooldown')} ${hms(a[2])}</small></div><button class="buy" data-ab="${i}" ${c>0||off?'disabled':''} onclick="openAc(${i})">${abH(c,off)}</button></div>`}).join('')+shopH()}
+ return h+AC.map((a,i)=>{const c=S.ac[i]-n;return `<div class="row up shp">${art(ACA[i])}<div class="ub"><b>${a[0]}</b><small>${acD(i)}</small><small class="nowv">${t('Перезарядка','Cooldown')} ${hms(a[2])}</small></div><button class="buy" data-ab="${i}" ${c>0||off?'disabled':''} onclick="openAc(${i})">${abH(c,off)}</button></div>`}).join('')+shopH()}
 const dg=n=>rwG()*5*n;
-function dayStrip(cur,got){let h='';for(let i=0;i<7;i++)h+=`<div class="day${i==cur?' cur':i<got?' got':''}${i==6?' big':''}"><small>${t('День ','Day ')}${i+1}</small>${i<got&&i!=cur?ico('check'):`<b><i class="coin"></i>${fmt(dg(i+1))}</b>`}${i==6?`<span><i class="soul"></i>5 <i class="nectar"></i>10</span>`:''}</div>`;return h}
+function dayStrip(cur,got){let h='';for(let i=0;i<7;i++)h+=`<div class="day${i==cur?' cur':i<got?' got':''}${i==6?' big':''}"><small>${t('День ','Day ')}${i+1}</small>${i<got&&i!=cur?ico('check'):`<b><i class="coin"></i>${fmt(dg(i+1))}</b>`}${i==6?`<span><i class="soul"></i>${fmt(daySouls())} <i class="nectar"></i>10</span>`:''}</div>`;return h}
 function dClaim(){const t=new Date(NOW()).toDateString();if(S.dl==t)return;const y=new Date(NOW()-864e5).toDateString(),n=S.dl==y?S.day:0;
- S.gold+=rwG()*5*(n+1);if(n==6){S.souls+=5;S.tot+=5;S.nec+=10}S.day=(n+1)%7;S.dl=t;sfx('reward');upd()}
+ S.gold+=rwG()*5*(n+1);if(n==6){const x=daySouls();S.souls+=x;S.tot+=x;S.nec+=10}S.day=(n+1)%7;S.dl=t;sfx('reward');upd()}
 // ======== ЗАДАНИЯ: вход по дням, задания с иконкой по типу, прогрессом и наградой ========
 const QI={k:'skull',c:'target',b:'crown',u:'up',s:'star',r:'flame',i:'helmet',a:'play',h:'house',f:'stairs',x:'bolt',o:'chest',m:'gem'};
-function questH(){qn();const td=new Date(NOW()).toDateString(),y=new Date(NOW()-864e5).toDateString(),nx=(S.dl==y?S.day:0)+1,ok=S.dl!=td,qg=rwG(),xtra=k=>k==7?` <i class="soul"></i>5 <i class="nectar"></i>10`:'';
+function questH(){qn();const td=new Date(NOW()).toDateString(),y=new Date(NOW()-864e5).toDateString(),nx=(S.dl==y?S.day:0)+1,ok=S.dl!=td,qg=rwG(),xtra=k=>k==7?` <i class="soul"></i>${fmt(daySouls())} <i class="nectar"></i>10`:'';
  let h=`<div class="dly"><div class="dly-h">${art('q_daily','big')}<div class="ub"><b>${t('Ежедневный вход','Daily login')}</b><small>${ok?t('День ','Day ')+nx+t(' из 7 — заберите награду',' of 7 — claim your reward'):t('Сегодня получено. Завтра (день ','Claimed today. Tomorrow (day ')+(S.day+1)+'): ≈<i class="coin"></i>'+fmt(dg(S.day+1))+xtra(S.day+1)}</small></div>`+
   `<button class="buy" ${ok?'':'disabled'} onclick="dClaim()">${ok?`<b>${t('Забрать','Claim')}</b><span><i class="coin"></i>${fmt(dg(nx))}</span>`:`<b>${ico('check')}</b>`}</button></div><div class="days">${dayStrip(ok?nx-1:-1,ok?nx-1:(S.day||7))}</div></div>`;
  const L=S.q.p.map((qi,j)=>{const q=QD[qi],v=Math.min(S.q[q[1]],q[2]),dn=S.q.d[j],rd=!dn&&v>=q[2];return{q,v,j,dn,rd,o:rd?0:dn?2:1}}).sort((a,b)=>a.o-b.o||a.j-b.j),dc=S.q.d.filter(x=>x).length;
@@ -483,6 +483,11 @@ function questH(){qn();const td=new Date(NOW()).toDateString(),y=new Date(NOW()-
  return h+`<div class="row qb${S.q.bn?' done':''}">${art('q_bonus',S.q.bn?'done':'')}<div class="ub"><b>${t('Все задания дня','All daily quests')}: ${dc}/${QN}</b><div class="m2"><span><i style="width:${Math.round(dc/QN*100)}%"></i></span></div><small>${S.q.bn?t('Бонус получен','Bonus claimed'):t('Бонус за все: ','Bonus for all: ')+'<i class="nectar"></i>5'}</small></div></div>`}
 const TB=[3,3,3,5,5,8,8,10],TM=[1e9,1e9,1e9,1e9,25,20,15,16],tc=i=>TB[i]*Math.pow(2,S.t[i]);
 function soulG(x){return Math.floor(x/5*(1+x/400))}
+// Души из Золотого сундука и за 7-й день входа растут вместе с рекордом: доля от «полного перерождения» с рекорда
+// (души за путь от стартового этажа 30% до рекорда). Сундук — 10% (не меньше 2), 7-й день — 25% (не меньше 5).
+const soulRun=()=>Math.max(0,soulG(S.max)-soulG(Math.floor(START_FRAC*S.max)));
+const acD=i=>i==3?AC[3][1].replace(/ \+ (души|souls)$/,'')+' + <i class="soul"></i>'+fmt(chestSouls()):AC[i][1]; // описание сундука; у Золотого — сколько душ сейчас
+const chestSouls=()=>Math.max(2,Math.floor(soulRun()*.1)),daySouls=()=>Math.max(5,Math.floor(soulRun()*.25));
 function soulGain(){return Math.floor(Math.max(0,soulG(S.run)-soulG(S.sf))*(1+.1*pt(12)))}
 const START_FRAC=.3;
 function startF(){let f=Math.max(1,Math.floor(START_FRAC*S.run));if(isBoss(f))f--;return Math.max(1,f)}
