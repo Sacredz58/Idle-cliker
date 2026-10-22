@@ -127,7 +127,7 @@ const PF={kind:'local',sdk:null,noAds:false,adblock:false,t0:Date.now()};
 // ---- VK: VK Bridge. Площадка — если есть мост и в адресе параметры запуска vk_app_id (VK их всегда передаёт) ----
 // Сохранение: VKWebAppStorageSet хранит до 4096 байт на ключ — JSON режется на куски sv0..svN (+ svn = число кусков),
 // пишутся только изменившиеся куски и не чаще раза в минуту (лимит VK — 1000 вызовов в час); копия всегда и в localStorage.
-const VK_SUPPORT=''; // ссылка на сообщество/страницу поддержки (обязательна для каталога VK), напр. 'https://vk.com/podzemelie_aida'
+const VK_SUPPORT='https://vk.ru/club242475048'; // ссылка на сообщество/страницу поддержки (обязательна для каталога VK), напр. 'https://vk.com/podzemelie_aida'
 const VK_CH=1300,VK_GAP=60000;let vkC=[],vkT=0,vkCloud=null;
 const vkQ=()=>{try{return new URLSearchParams(location.search)}catch(e){return null}};
 function vkOn(){const q=vkQ();return !!(typeof window!='undefined'&&window.vkBridge&&q&&q.get('vk_app_id'))}

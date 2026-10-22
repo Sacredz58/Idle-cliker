@@ -631,6 +631,7 @@ ok('wide layout: after a boss loss «Fight the boss» gets its own full row, vid
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('first frame: arena drawn from the local save before the platform SDK answers; no saving until the real save is loaded',g.includes('preDraw();await pfInit();')&&g.includes('await load();loaded=true;')&&g.includes('function save(f){if(!loaded)return;')&&htm5.includes('<section id="arena" data-act="0">')&&!htm5.includes('👹'))}
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('VK mobile web (iPhone): visible part of the game window measured by IntersectionObserver, page shrinks to it',g.includes('function vkVisInit()')&&g.includes("if(vq&&vq.get('vk_platform')=='mobile_web')vkVisInit();")&&g.includes('b=vkVis>240&&vkVis<ih-4?vkVis:0'))}
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('reused buy button forgets old content (no soul icon on weapon prices after Skills -> Weapons)',g.includes("if(['data-k','data-i','data-ab'].some(n=>a.getAttribute(n)!==b.getAttribute(n))){delete a._k;delete a._h}")&&g.includes("C[1].firstElementChild.className=='coin'"))}
+{const b=fs.readFileSync(ROOT+'/build.sh','utf8');ok('build adds a version tag to game.js/style.css (no stale cache after an update)',b.includes('game.js?v=$h')&&b.includes('style.css?v=$h'))}
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
 ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
 }

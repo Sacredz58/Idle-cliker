@@ -49,6 +49,14 @@ grep -qF "$VK_SDK" dist/vk/index.html
 grep -q "const VK_ADS=true" dist/vk/game.js
 if [ "${VK_ADS:-1}" = "0" ]; then sed -i 's/const VK_ADS=true/const VK_ADS=false/' dist/vk/game.js; grep -q "const VK_ADS=false" dist/vk/game.js; echo "ВКонтакте: реклама ВЫКЛЮЧЕНА"; else echo "ВКонтакте: реклама включена"; fi
 
+# метка версии: game.js?v=<хеш> и style.css?v=<хеш> — после обновления браузер и VK сразу берут новый код,
+# а не версию из кэша (GitHub Pages разрешает кэшировать файлы 10 минут)
+for t in yandex crazygames vk; do
+  h=$(cat "dist/$t/game.js" "dist/$t/style.css" | sha1sum | cut -c1-10)
+  sed -i "s#href=\"style.css\"#href=\"style.css?v=$h\"#; s#src=\"game.js\"#src=\"game.js?v=$h\"#" "dist/$t/index.html"
+  grep -q "game.js?v=$h" "dist/$t/index.html"; grep -q "style.css?v=$h" "dist/$t/index.html"
+done
+
 (cd dist/yandex && zip -qr ../../build/yandex-games.zip .)
 (cd dist/crazygames && zip -qr ../../build/crazygames.zip .)
 (cd dist/vk && zip -qr ../../build/vk-games.zip .)
