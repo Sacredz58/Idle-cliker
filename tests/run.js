@@ -34,8 +34,8 @@ run('qn();S.q.p=[0,2,4,6,7,8,9,10];S.q.k=250');const g3=run('S.gold');run('qClai
 run('tab="quest";tabRender()');ok('quest renders',els.list.innerHTML.includes('Убить 250'));
 run('S.q.d=Array(8).fill(0);S.q.k=250;tabRender()');{const q1=els.list.innerHTML;ok('ready quest listed first with a claim button, quest icons by type',q1.indexOf('class="row up qr rdy"')<q1.indexOf('class="row up qr"')&&q1.includes('img/ui/q_k.webp'));}
 // talents + prestige
-run('S.souls=10;S.tot=10;tab="pres";tabRender()');run('buyT(0)');ok('talent bought',run('S.t[0]')===1&&run('S.souls')===7);
-run('S.max=100;S.run=100;prestige()');ok('prestige keeps perm data',run('S.floor')===29&&run('S.souls')===32&&run('S.tot')===35&&run('S.t[0]')===1&&run('S.eq[0]')===0&&run('S.b[0][0]')===1);
+run('S.souls=10;S.tot=10;tab="pres";tabRender()');run('buyT(0)');ok('talent bought (first level costs 6)',run('S.t[0]')===1&&run('S.souls')===4);
+run('S.max=100;S.run=100;prestige()');ok('prestige keeps perm data',run('S.floor')===29&&run('S.souls')===29&&run('S.tot')===35&&run('S.t[0]')===1&&run('S.eq[0]')===0&&run('S.b[0][0]')===1);
 const s1=run('S.souls');ok('after prestige the run starts at 29 (30% of 100, non-boss)',run('S.run')===29&&run('S.floor')===29);
 run('prestige()');ok('instant re-prestige gives nothing',run('S.souls')===s1);
 run('S.run=100;prestige()');ok('blocked by cooldown',run('S.souls')===s1&&run('pcd()')>0);
@@ -161,8 +161,8 @@ run('S.w=S.w.map(()=>1);tabRender()');ok('all weapons owned: no «more» row',ro
 {const M=run('Math'),mr=M.random;
 ok('soul gain formula',[1,100,400,1000,10000].map(r=>run(`S.run=${r};soulGain()`)).join()==='0,25,160,700,52000');
 const co=[50,200,500,1000,3000,9000].map(r=>run(`S.run=${r};soulGain()/${r}`));ok('souls-per-floor coefficient keeps growing',co.every((x,i)=>i==0||x>co[i-1]));
-ok('extended content 17 weapons / 18 gods / 8 talents',run('WEAPONS.length')===17&&run('GODS.length')===18&&run('S0().w.length')===17&&run('S0().g.length')===18&&run('S0().t.length')===8);
-reset();run('S.souls=1e9;S.tot=0');for(let i=0;i<8;i++)run(`buyT(${i})`);ok('all 8 talents buyable',run('S.t.every(x=>x===1)'));
+ok('extended content 17 weapons / 18 gods / 9 talents',run('WEAPONS.length')===17&&run('GODS.length')===18&&run('S0().w.length')===17&&run('S0().g.length')===18&&run('S0().t.length')===9);
+reset();run('S.souls=1e9;S.tot=0');for(let i=0;i<9;i++)run(`buyT(${i})`);ok('all 9 talents buyable',run('S.t.every(x=>x===1)'));
 run('S.t[4]=25');run('buyT(4)');ok('talent cap respected',run('S.t[4]')===25);run('tab="pres";tabRender()');ok('pres tab shows talents, cap and coefficient',els.list.innerHTML.includes('Глаз Аполлона')&&els.list.innerHTML.includes('МАКС')&&els.list.innerHTML.includes('коэф.'));
 const hit=(setup,rnd)=>{reset();run(setup);M.random=()=>rnd;const h=run('hp');pd({timeStamp:9e7});return h-run('hp')};
 const a1=hit('S.floor=5;spawn()',.05),a2=hit('S.floor=5;S.t[3]=5;spawn()',.05);ok('crit damage talent (x3 -> x4 at lvl5)',Math.abs(a2/a1-4/3)<1e-9);
@@ -173,7 +173,7 @@ reset();run('S.t[5]=10;S.max=500;S.floor=15;spawn();useSk(0)');const hs=run('max
 reset();run('S.t[6]=10;S.max=500;S.floor=15;spawn();useSk(0)');ok('Chronos echo: cooldown -30%',Math.abs(run('S.sc[0]')-simNow-21000)<1);
 reset();run('S.g[0]=10;S.t[7]=2;S.last=Date.now()-20*3600e3;S.gold=0;offline()');els.o1.onclick();ok('offline cap +1h from talent',Math.abs(run('S.gold')-40*9*3600*.05)<1);
 ls.hades=run('JSON.stringify(Object.assign(S0(),{w:[5,0,0,0,0,0,0,0,0,0,0],g:[1,2,3,4,5,6,7,8,9,10,11,12],t:[1,2,3],floor:9}))');await run('load()');
-ok('old save (11 weapons/12 gods/3 talents) migrates',run('S.w.length')===17&&run('S.w[0]')===5&&run('S.g.length')===18&&run('S.g[11]')===12&&run('S.t.length')===8&&run('S.t[2]')===3&&run('S.t[7]')===0);
+ok('old save (11 weapons/12 gods/3 talents) migrates',run('S.w.length')===17&&run('S.w[0]')===5&&run('S.g.length')===18&&run('S.g[11]')===12&&run('S.t.length')===9&&run('S.t[2]')===3&&run('S.t[7]')===0&&run('S.t[8]')===0);
 }
 {
 ok('quest pool >=12, 5 distinct per day',run('QD.length')>=12&&(()=>{for(let i=0;i<60;i++){run('S.q=null;qn()');if(run('S.q.p.length')!==8||run('new Set(S.q.p.map(i=>QD[i][1])).size')!==8)return false}return true})());
@@ -240,7 +240,7 @@ run('tab="quest";tabRender()');mark();run('S.gold=1e9;buy("w",0)');run('hTick()'
 run('tab="top";tabRender()');mark();pd({timeStamp:5e9+500});run('hTick()');ok('feats tab refreshes after a click',els.list.innerHTML!=='MARK');
 run('tab="hero";tabRender()');mark();pd({timeStamp:5e9+1000});run('hTick()');ok('hero tab still not re-rendered by clicks',els.list.innerHTML==='MARK');
 {// кнопка покупки: надпись меняется на месте, разметка кнопки не пересоздаётся (иначе клик теряется при смене этажа)
-const lvN={textContent:'+1 ур.'},prN={nodeValue:'15'},btn={dataset:{k:'w',i:'0'},children:[lvN,{lastChild:prN}],innerHTML:'ORIG',_k:'old',disabled:false,parentElement:null};
+const lvN={textContent:'+1 ур.'},prN={nodeValue:'15'},btn={dataset:{k:'w',i:'0'},children:[lvN,{lastChild:prN,firstElementChild:{className:'coin'}}],innerHTML:'ORIG',_k:'old',disabled:false,parentElement:null};
 const qsa=ctx.document.querySelectorAll;ctx.document.querySelectorAll=sel=>sel=='[data-k]'?[btn]:[];run('S.gold=1e12;BQ="max"');run('updBtns()');ctx.document.querySelectorAll=qsa;run('BQ=1');
 ok('buy button text updated in place (no re-created markup mid-click)',btn.innerHTML==='ORIG'&&/^\+\d+ ур\.$/.test(lvN.textContent)&&lvN.textContent!=='+1 ур.'&&prN.nodeValue!=='15');
 ok('clicks always land on the button itself (children ignore pointer)',fs.readFileSync(ROOT+'/style.css','utf8').includes('button *{pointer-events:none}'));}
@@ -467,7 +467,7 @@ reset();run('S.run=3;prestige()');ok('tiny run: soul gain 0, no prestige',run('S
 reset();run('S.run=10;S.pt=0');run('prestige()');ok('run of 10 floors gives souls and restarts at floor 3',run('S.floor')===3||run('S.floor')===1);
 reset();run('S.run=1234;tab="pres";tabRender()');ok('prestige tab announces the next start floor',els.list.innerHTML.includes('следующий старт с этажа '+run('startF()')));
 {const ph=els.list.innerHTML;ok('altar card: souls, gain, damage after rebirth, rebirth button',ph.includes('class="alt"')&&ph.includes('Урон станет')&&ph.includes('data-pb onclick="prestige()"')&&ph.includes('+'+run('fmt(soulGain())')+' душ'));
-ok('8 gifts with own icons and current effect',(ph.match(/class="row up tal/g)||[]).length===8&&ph.includes('img/ui/gift_7.webp')&&ph.includes('img/ui/gift_8.webp')&&ph.includes('Сейчас <em>'));}
+ok('9 gifts with own icons and current effect',(ph.match(/class="row up tal/g)||[]).length===9&&ph.includes('img/ui/gift_8.webp')&&ph.includes('img/ui/gift_9.webp')&&ph.includes('Сейчас <em>'));}
 run('S.t[6]=10;tabRender()');ok('Chronos gift shows −30% now',els.list.innerHTML.includes('Сейчас <em>−30%</em>'));
 run('S.b=[[2,0],[0,Date.now()+20e3],[0,0]];tab="house";tabRender()');{const hh=els.list.innerHTML;
 run('S.b[1][1]=NOW()+6e5;tabRender()');ok('house: building keeps its own icon while under construction',els.list.innerHTML.includes('img/ui/house_1.webp')&&!els.list.innerHTML.includes('house_3'));run('S.b[1][1]=0;tabRender()');ok('house: 3 building cards with icons, bonus now → next',(hh.match(/class="row hb h\d"/g)||[]).length===3&&hh.includes('img/ui/house_0.webp')&&hh.includes('Сейчас <em>+20%</em> → +30%'));
@@ -630,6 +630,7 @@ ok('wide layout: after a boss loss «Fight the boss» gets its own full row, vid
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('phone: list sheet — grip expands the list full screen, collapses on boss start, hidden on wide layouts',htm5.includes('id="grip"')&&g.includes('function gripInit()')&&g.includes('if(inBoss&&sheetOn())sheet(false);')&&css5.includes('body.sheet #arena{height:0!important')&&css5.includes('#grip{display:none}'))}
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('first frame: arena drawn from the local save before the platform SDK answers; no saving until the real save is loaded',g.includes('preDraw();await pfInit();')&&g.includes('await load();loaded=true;')&&g.includes('function save(f){if(!loaded)return;')&&htm5.includes('<section id="arena" data-act="0">')&&!htm5.includes('👹'))}
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('VK mobile web (iPhone): visible part of the game window measured by IntersectionObserver, page shrinks to it',g.includes('function vkVisInit()')&&g.includes("if(vq&&vq.get('vk_platform')=='mobile_web')vkVisInit();")&&g.includes('b=vkVis>240&&vkVis<ih-4?vkVis:0'))}
+{const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('reused buy button forgets old content (no soul icon on weapon prices after Skills -> Weapons)',g.includes("if(['data-k','data-i','data-ab'].some(n=>a.getAttribute(n)!==b.getAttribute(n))){delete a._k;delete a._h}")&&g.includes("C[1].firstElementChild.className=='coin'"))}
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
 ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
 }
@@ -659,6 +660,13 @@ run('setTexts("en");tab="top";tabRender()');ok('feats in English',!/[а-яё]/i.
 reset();run('S.nec=50;S.q=null;qn()');{const q0=run('JSON.stringify(S.q.p)');const qi=run("SHOP.findIndex(a=>a[1]=='quests')");els.toast.innerHTML='';run('buyShop('+qi+')');
 ok('shop «New daily quests»: Nectar spent, fresh set, confirmation toast',run('S.nec')===45&&run('S.q.d.every(x=>!x)')&&els.toast.innerHTML.includes('Задания дня обновлены'));}
 {const ok2=[];for(const k of ['gf','hermes']){els.toast.innerHTML='';run("buyShop(SHOP.findIndex(a=>a[1]=='"+k+"'))");ok2.push(els.toast.innerHTML.length>0)}ok('shop boosts show a confirmation toast',ok2.every(Boolean));}
+// дар «Воды Леты»: +10% душ за перерождение за уровень, цена 10·2^ур., потолок 15
+reset();run('S.run=723;S.sf=216;S.t[8]=0');{const g0=run('soulGain()');run('S.t[8]=5');const g5=run('soulGain()');run('S.t[8]=15');const g15=run('soulGain()');
+ok('Waters of Lethe: +10% rebirth souls per level (723: '+g0+' -> '+g5+' at lv5 -> '+g15+' at lv15)',g0===339&&g5===Math.floor(339*1.5)&&g15===Math.floor(339*2.5));}
+run('S.t[8]=0;S.souls=1e9');ok('Waters of Lethe: linear cost 30, 60, 90 … 450, max level 15',run('tc(8)')===30&&(run('buyT(8)'),run('tc(8)'))===60&&(run('buyT(8)'),run('tc(8)'))===90&&run('S.t[8]=14;tc(8)')===450&&run('TM[8]')===15);run('S.t[8]=0');
+ok('all gifts cost grows linearly: Zeus 6, 12, 18 … lv.10 → 66; Apollo 10, 20 …',run('S.t[0]=0;tc(0)')===6&&run('S.t[0]=1;tc(0)')===12&&run('S.t[0]=10;tc(0)')===66&&run('S.t[4]=1;tc(4)')===20);run('S.t[0]=0;S.t[4]=0');
+run('S.t[8]=15;S.souls=1e12;buyT(8)');ok('Waters of Lethe: cannot go past level 15',run('S.t[8]')===15);
+run('S.t[8]=0');
 // ---------- tips ----------
 const T0='S.tut=0;S.td={};S.tipF=0;S.st={};S.gold=0;S.w[0]=1;S.g=S.g.map(()=>0);S.floor=1;S.max=1;S.dl="";S.loot=[];S.inv=[];S.eq=[-1,-1,-1,-1,-1,-1];S.nec=0;S.ach={};S.achN={};S.farm=false;inBoss=false;tipCur=null;spawn();';
 els.fairy.hidden=true;

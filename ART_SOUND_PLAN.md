@@ -176,6 +176,18 @@ Ophion, primordial serpent of chaos, colossal coiled serpent with black obsidian
 
 ---
 
+## Иконка дара «Воды Леты» (новый 9-й дар) — ✅ готово 22.10
+
+Файл: `img/ui/gift_9.webp`. Сейчас там временная иконка: перекрашенный в бирюзовый алтарь Никты. Пришлите квадрат 1024×1024 PNG, я уменьшу его до 112×112 webp, как остальные дары.
+
+Стиль должен совпадать с `gift_1…gift_8`: один предмет по центру, тёмное грозовое небо с серо-фиолетовыми облаками и звёздами, без рамки и текста.
+
+```
+Square 1:1 game UI icon, hand-painted dark-fantasy Greek mythology style, matching a set of icons: one centered object on a dark stormy night background with swirling grey-violet clouds, faint stars and a soft vignette. The object: an ancient black-marble ritual basin (kylix) on a short pedestal, decorated with a thin gold Greek-key meander band, brimming with glowing pale-teal and silver water of the river Lethe; luminous water spills over the rim in thin streams; small translucent soul wisps — teal and violet flames shaped like tiny spirits — rise from the surface and spiral upward. The water lights the bowl from within. High contrast, rich detail, bold silhouette that stays readable at 64 px. No text, no frame, no border, no characters, no watermark.
+```
+
+---
+
 ## Итог: что присылать и в каком порядке
 
 | # | Что | Сколько | Важность |
@@ -187,5 +199,6 @@ Ophion, primordial serpent of chaos, colossal coiled serpent with black obsidian
 | 4 | Звуки | 10 | желательно |
 | 5 | Монстры актов V–VI, боссы Кера и Офион | 4 | позже |
 | 5 | Облики героя | 5 | позже |
+| ✅ | Иконка дара «Воды Леты» (`gift_9`) | 1 | готово |
 
 После обложек: перезапись видео 16:9 и 2:3 (делаю сам).

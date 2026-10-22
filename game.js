@@ -8,7 +8,7 @@ const SPR={mob:{0:'act1_mob',1:'act2_mob',2:'act3_mob',3:'act4_mob'},boss:{10:'b
 const GBOSS={0:['boss_0010','Кампа','Kampe']};
 let ACTS,BOSSES,WEAPONS,GODS;
 const WALLS=[50,100,250,500,2000,4500,7000,9000,10000];
-const S0=()=>({floor:1,max:1,gold:0,souls:0,w:[1,...Array(16).fill(0)],g:Array(18).fill(0),last:NOW(),chest:0,hermes:0,adT:0,tot:0,t:[0,0,0,0,0,0,0,0],inv:[],eq:[-1,-1,-1,-1,-1,-1],b:[[0,0],[0,0],[0,0]],day:0,dl:'',q:null,pt:0,run:1,farm:false,sc:[0,0,0,0],se:[0,0,0,0],ac:[0,0,0,0],mk:0,cheat:false,loot:[],vol:[.25,.25],vv:1,sl:[0,0,0,0],nec:0,own:[[0],[0]],skin:0,theme:0,gf:0,sf:1,lang:'',st:{},achN:{},ach:{},tut:0,pc:0});
+const S0=()=>({floor:1,max:1,gold:0,souls:0,w:[1,...Array(16).fill(0)],g:Array(18).fill(0),last:NOW(),chest:0,hermes:0,adT:0,tot:0,t:[0,0,0,0,0,0,0,0,0],inv:[],eq:[-1,-1,-1,-1,-1,-1],b:[[0,0],[0,0],[0,0]],day:0,dl:'',q:null,pt:0,run:1,farm:false,sc:[0,0,0,0],se:[0,0,0,0],ac:[0,0,0,0],mk:0,cheat:false,loot:[],vol:[.25,.25],vv:1,sl:[0,0,0,0],nec:0,own:[[0],[0]],skin:0,theme:0,gf:0,sf:1,lang:'',st:{},achN:{},ach:{},tut:0,pc:0});
 let S=S0(),ysdk=null,player=null,hp=0,maxhp=0,bossT=0,inBoss=false,clicks=[],rage=0,sound=true,tab='hero',pool=[],pi=0,acc=0;
 const SUF=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc','Ud','Dd','Td','Qad','Qid','Sxd'];
 const fmt=n=>{if(!isFinite(n))return'∞';if(n<1e3)return Math.floor(n)+'';const p=Math.pow(10,Math.floor(Math.log10(n))-2);n=Math.round(n/p)*p;const e=Math.floor(Math.log10(n)/3);if(e>=SUF.length)return n.toExponential(2).replace('e+','e');const v=n/Math.pow(10,e*3);return(v<10?v.toFixed(2):v<100?v.toFixed(1):v.toFixed(0))+SUF[e]};
@@ -74,7 +74,7 @@ function buy(kind,i){const arr=kind=='w'?WEAPONS:GODS,lv=kind=='w'?S.w:S.g,[n,c]
 // кнопки покупки: «+N ур. · цена», недоступные гаснут, лучшее вложение золота помечается «Выгоднее всего»
 function updBtns(){let best=null,bv=0;document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k,i=+b.dataset.i,A=k=='w'?WEAPONS:GODS,L=(k=='w'?S.w:S.g)[i],[n,c]=plan(A[i][2],L),key=n+'|'+fmt(c),ok=S.gold>=c;
   // меняем только текст внутри кнопки: если пересоздать её содержимое во время нажатия, браузер теряет клик
-  if(b._k!==key){b._k=key;const lv='+'+n+' '+t('ур.','lv.'),pr=fmt(c),C=b.children;if(C&&C.length==2&&C[1].lastChild){C[0].textContent=lv;C[1].lastChild.nodeValue=pr}else b.innerHTML='<b>'+lv+'</b><span><i class="coin"></i>'+pr+'</span>'}b.disabled=!ok;
+  if(b._k!==key){b._k=key;const lv='+'+n+' '+t('ур.','lv.'),pr=fmt(c),C=b.children;if(C&&C.length==2&&C[1].lastChild&&C[1].firstElementChild&&C[1].firstElementChild.className=='coin'){C[0].textContent=lv;C[1].lastChild.nodeValue=pr}else b.innerHTML='<b>'+lv+'</b><span><i class="coin"></i>'+pr+'</span>'}b.disabled=!ok;
   const v=A[i][1]*((L+n)*mult(L+n)-L*mult(L))/c;if(ok&&v>bv){bv=v;best=b}
   const r=b.parentElement;if(r)r.classList.toggle('dim',!ok&&L==0)});
  document.querySelectorAll('[data-k]').forEach(b=>{const r=b.parentElement;if(r)r.classList.toggle('isbest',b===best)});
@@ -91,6 +91,9 @@ const NEXT_SHOW=2;
 function morph(a,b){if(a.nodeType!==b.nodeType||a.nodeName!==b.nodeName){a.replaceWith(b);return}
  if(a.nodeType===3||a.nodeType===8){if(a.nodeValue!==b.nodeValue)a.nodeValue=b.nodeValue;return}
  if(a.nodeType!==1)return;
+ // элемент стал другой кнопкой (другие data-k/i/ab) — забываем, что в нём было: иначе кнопка покупки оружия
+ // оставалась с иконкой души от кнопки прокачки умения
+ if(['data-k','data-i','data-ab'].some(n=>a.getAttribute(n)!==b.getAttribute(n))){delete a._k;delete a._h}
  for(const at of [...a.attributes])if(!b.hasAttribute(at.name))a.removeAttribute(at.name);
  for(const at of [...b.attributes])if(a.getAttribute(at.name)!==at.value)a.setAttribute(at.name,at.value);
  if(a._k!==undefined&&b.childNodes.length===0)return;
@@ -494,22 +497,25 @@ function questH(){qn();const td=new Date(NOW()).toDateString(),y=new Date(NOW()-
  h+=L.map(({q,v,j,dn,rd})=>`<div class="row up qr${rd?' rdy':dn?' done':''}">${art(dn?'q_done':QI[q[1]]?'q_'+q[1]:'q_bonus',rd?'rdy':dn?'done':'')}<div class="ub"><b>${q[0]}</b><div class="m2"><span><i style="width:${Math.round(v/q[2]*100)}%"></i></span><small>${v}/${q[2]}</small></div><small class="rw">${t('награда','reward')} <i class="coin"></i>${fmt(qg*q[3])} · <i class="nectar"></i>1</small></div>`+
   `<button class="buy" ${dn||!rd?'disabled':''} onclick="qClaim(${j})">${dn?`<b>${t('Получено','Claimed')}</b>`:`<b>${t('Забрать','Claim')}</b>`}</button></div>`).join('');
  return h+`<div class="row qb${S.q.bn?' done':''}">${art('q_bonus',S.q.bn?'done':'')}<div class="ub"><b>${t('Все задания дня','All daily quests')}: ${dc}/${QN}</b><div class="m2"><span><i style="width:${Math.round(dc/QN*100)}%"></i></span></div><small>${S.q.bn?t('Бонус получен','Bonus claimed'):t('Бонус за все: ','Bonus for all: ')+'<i class="nectar"></i>5'}</small></div></div>`}
-const TB=[3,3,3,5,5,8,8,10],TM=[1e9,1e9,1e9,1e9,25,20,15,16],tc=i=>TB[i]*Math.pow(2,S.t[i]);
+// Вечные дары: цена растёт линейно — TL[i]·(ур.+1). Раньше удваивалась (3, 6, 12, 24…), и после ~10 ур. дары переставали
+// покупаться; линейно: Мощь Зевса 6, 12, 18, 24… Шаг = 2× прежней базовой цены (с базой в 1× середина игры ускорялась до +40%).
+// 9-й дар «Воды Леты»: +10% душ за перерождение за ур., 30, 60 … 450, потолок 15 ур. = +150%.
+const TL=[6,6,6,10,10,16,16,20,30],TM=[1e9,1e9,1e9,1e9,25,20,15,16,15],tc=i=>TL[i]*((S.t[i]|0)+1);
 function soulG(x){return Math.floor(x/5*(1+x/400))}
 // Души из Золотого сундука и за 7-й день входа растут вместе с рекордом: доля от «полного перерождения» с рекорда
 // (души за путь от стартового этажа 30% до рекорда). Сундук — 10% (не меньше 2), 7-й день — 25% (не меньше 5).
 const soulRun=()=>Math.max(0,soulG(S.max)-soulG(Math.floor(START_FRAC*S.max)));
 const acD=i=>i==3?AC[3][1].replace(/ \+ (души|souls)$/,'')+' + <i class="soul"></i>'+fmt(chestSouls()):AC[i][1]; // описание сундука; у Золотого — сколько душ сейчас
 const chestSouls=()=>Math.max(2,Math.floor(soulRun()*.1)),daySouls=()=>Math.max(5,Math.floor(soulRun()*.25));
-function soulGain(){return Math.floor(Math.max(0,soulG(S.run)-soulG(S.sf))*(1+.1*pt(12)))}
+function soulGain(){return Math.floor(Math.max(0,soulG(S.run)-soulG(S.sf))*(1+.1*pt(12))*(1+.1*(S.t[8]|0)))}
 const START_FRAC=.3;
 function startF(){let f=Math.max(1,Math.floor(START_FRAC*S.run));if(isBoss(f))f--;return Math.max(1,f)}
 function skipGold(f){let g=0;for(let i=1;i<=f;i++)g+=mHP(i)*.1*(isBoss(i)?3:1);return g*bld(1)*T(1)}
 function pct(x){return +(x*100).toFixed(1)}
 function buyT(i){if(S.t[i]>=TM[i]||S.souls<tc(i))return;S.souls-=tc(i);S.t[i]++;upd()}
 // ======== ДАРЫ: алтарь перерождения и вечные дары за души ========
-const TNI=['bolt','coins','laurel','blades','target','star','hourglass','moon'];
-const tNow=(i,l)=>[`+${10*l}%`,`+${10*l}%`,`+${10*l}%`,`×${(3+.2*l).toFixed(1)}`,`+${l}%`,`+${10*l}%`,`−${Math.round(100-100*Math.max(.5,1-.03*l))}%`,`+${30*l} ${t('мин','min')}`][i];
+const TNI=['bolt','coins','laurel','blades','target','star','hourglass','moon','orb'];
+const tNow=(i,l)=>[`+${10*l}%`,`+${10*l}%`,`+${10*l}%`,`×${(3+.2*l).toFixed(1)}`,`+${l}%`,`+${10*l}%`,`−${Math.round(100-100*Math.max(.5,1-.03*l))}%`,`+${30*l} ${t('мин','min')}`,`+${10*l}%`][i];
 function altH(){const g=soulGain(),now=soulM(),aft=Math.pow(1+(S.tot+g)*.05,1.5);
  return `<div class="alt"><div class="alt-h">${art('gift_0','big')}<div><b>${t('Алтарь Никты','Altar of Nyx')}</b><small>${t('Души — вечный бонус к урону: ×(1+0,05·души)^1,5','Souls give a permanent damage bonus: ×(1+0.05·souls)^1.5')}</small></div></div>`+
   `<div class="alt-s"><div><small>${t('Души','Souls')}</small><b><i class="soul"></i> ${fmt(S.souls)}</b></div><div><small>${t('Урон от душ','Soul damage')}</small><b>×${fmt(now)}</b></div></div>`+
@@ -531,7 +537,7 @@ function setTexts(l){LANG=l=='en'?'en':'ru';
  SL=[t('Шлем','Helmet'),t('Доспех','Armor'),t('Оружие','Weapon'),t('Амулет','Amulet'),t('Кольцо','Ring'),t('Плащ','Cloak')];
  RN=[t('Обычный','Common'),t('Редкий','Rare'),t('Эпический','Epic'),t('Легендарный','Legendary'),t('Мифический','Mythic'),t('Божественный','Divine'),t('Титанический','Titanic'),t('Первородный','Primordial')];
  BN=[[t('Кузница Гефеста','Forge of Hephaestus'),t('+10% урона клика','+10% click damage')],[t('Сад Персефоны','Garden of Persephone'),t('+10% золота','+10% gold')],[t('Библиотека Афины','Library of Athena'),t('+10% урона богов','+10% god damage')]];
- TN=[[t('Мощь Зевса','Might of Zeus'),t('+10% урона клика за ур.','+10% click damage per lv.')],[t('Золото Плутоса','Gold of Plutus'),t('+10% золота за ур.','+10% gold per lv.')],[t('Дар богов','Gift of the Gods'),t('+10% урона богов за ур.','+10% god damage per lv.')],[t('Рука Ареса','Hand of Ares'),t('+0,2 к множителю крита (база ×3) за ур.','+0.2 crit multiplier (base ×3) per lv.')],[t('Глаз Аполлона','Eye of Apollo'),t('+1% к шансу крита за ур.','+1% crit chance per lv.')],[t('Мастерство умений','Skill Mastery'),t('+10% к силе и длительности активных умений за ур.','+10% active skill power and duration per lv.')],[t('Эхо Хроноса','Echo of Chronos'),t('−3% к перезарядке умений за ур.','−3% skill cooldown per lv.')],[t('Терпение Аида','Patience of Hades'),t('+30 мин к лимиту офлайн-дохода за ур.','+30 min offline earnings cap per lv.')]];
+ TN=[[t('Мощь Зевса','Might of Zeus'),t('+10% урона клика за ур.','+10% click damage per lv.')],[t('Золото Плутоса','Gold of Plutus'),t('+10% золота за ур.','+10% gold per lv.')],[t('Дар богов','Gift of the Gods'),t('+10% урона богов за ур.','+10% god damage per lv.')],[t('Рука Ареса','Hand of Ares'),t('+0,2 к множителю крита (база ×3) за ур.','+0.2 crit multiplier (base ×3) per lv.')],[t('Глаз Аполлона','Eye of Apollo'),t('+1% к шансу крита за ур.','+1% crit chance per lv.')],[t('Мастерство умений','Skill Mastery'),t('+10% к силе и длительности активных умений за ур.','+10% active skill power and duration per lv.')],[t('Эхо Хроноса','Echo of Chronos'),t('−3% к перезарядке умений за ур.','−3% skill cooldown per lv.')],[t('Терпение Аида','Patience of Hades'),t('+30 мин к лимиту офлайн-дохода за ур.','+30 min offline earnings cap per lv.')],[t('Воды Леты','Waters of Lethe'),t('+10% душ за перерождение за ур.','+10% souls from rebirth per lv.')]];
  QD=[[t('Убить 250 монстров','Kill 250 monsters'),'k',250,3],[t('Убить 1000 монстров','Kill 1000 monsters'),'k',1000,8],[t('Сделать 300 кликов','Make 300 clicks'),'c',300,3],[t('Сделать 1000 кликов','Make 1000 clicks'),'c',1000,8],[t('Победить босса','Defeat a boss'),'b',1,3],[t('Победить 3 боссов','Defeat 3 bosses'),'b',3,9],
  [t('Купить 10 улучшений','Buy 10 upgrades'),'u',10,4],[t('Использовать умения 3 раза','Use skills 3 times'),'s',3,4],[t('Включить Гнев Олимпа','Trigger Olympus Wrath'),'r',1,3],[t('Получить 3 предмета','Get 3 items'),'i',3,5],[t('Посмотреть рекламу 2 раза','Watch 2 videos'),'a',2,6],[t('Начать постройку здания','Start a building'),'h',1,3],[t('Открыть 5 новых этажей','Reach 5 new floors'),'f',5,6],
  [t('Нанести 100 критов','Land 100 crits'),'x',100,3],[t('Нанести 500 критов','Land 500 crits'),'x',500,7],[t('Открыть сундук за рекламу','Open a chest'),'o',1,5],[t('Открыть 3 сундука','Open 3 chests'),'o',3,12],[t('Сделать 3 синтеза предметов','Merge items 3 times'),'m',3,5],[t('Сделать 10 синтезов','Merge items 10 times'),'m',10,12],
