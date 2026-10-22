@@ -132,7 +132,7 @@ const vkTO=(p,ms)=>Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error
 async function vkGet(keys){const r=await vkTO(PF.sdk.send('VKWebAppStorageGet',{keys}),4000),o={};((r&&r.keys)||[]).forEach(k=>{o[k.key]=k.value});return o}
 async function vkInit(){const B=window.vkBridge;PF.kind='vk';PF.sdk=B;if(!VK_ADS)PF.noAds=true;
  try{await Promise.race([B.send('VKWebAppInit',{}),new Promise(r=>setTimeout(r,3000))])}catch(e){}
- try{vkTO(B.send('VKWebAppGetConfig',{}),4000).then(vkFit).catch(()=>{});addEventListener('resize',()=>vkFit())}catch(e){}
+ try{const vq=vkQ();if(vq&&vq.get('vk_platform')=='mobile_web')vkVisInit();vkTO(B.send('VKWebAppGetConfig',{}),4000).then(vkFit).catch(()=>{});addEventListener('resize',()=>vkFit())}catch(e){}
  try{B.subscribe(e=>{const ty=e&&e.detail&&e.detail.type;if(ty=='VKWebAppUpdateConfig')vkFit(e.detail.data);else if(ty=='VKWebAppViewHide'){audVis(true);save(true)}else if(ty=='VKWebAppViewRestore')audVis(false)})}catch(e){}
  try{const n=parseInt((await vkGet(['svn'])).svn)||0;if(n>0&&n<500){const ks=[...Array(n)].map((_,i)=>'sv'+i),r={};for(let i=0;i<n;i+=100)Object.assign(r,await vkGet(ks.slice(i,i+100)));vkC=ks.map(k=>r[k]||'');vkCloud=vkC.join('')}}catch(e){console.warn('[Underworld Escape] VK storage',e)}
  vkPre()}
@@ -143,9 +143,17 @@ function vkSave(j,f){if(NOW()-vkT<(f?10000:VK_GAP))return;vkT=NOW();const B=PF.s
 // если она меньше высоты окна игры, ужимаем страницу до неё.
 let vkVP=null;
 function vkH(v,ih){if(!v)return 0;const tg=+v.avail_height||+v.viewport_height||0;return tg>240&&tg<ih-4?Math.floor(tg):0}
-function vkFit(c){try{if(c&&typeof c=='object')vkVP=c;const q=vkQ();if(!vkVP||!q||q.get('vk_platform')!='mobile_web')return;
- const h=vkH(vkVP,innerHeight),v=h?h+'px':'';if(document.body.style.height!==v){document.documentElement.style.height=v;document.body.style.height=v;fitK='';fitArena()}}catch(e){}}
-const vkDiag=()=>{try{const v=vkVP||{},q=vkQ();return (q&&q.get('vk_platform')||'?')+' · '+innerWidth+'×'+innerHeight+' · '+(v.viewport_height||'-')+'/'+(v.avail_height||'-')}catch(e){return ''}};
+// Второй источник — сама страница: IntersectionObserver в iframe считает пересечение с видимой областью ВСЕЙ страницы VK,
+// поэтому видно, где кончается видимая часть окна игры (на iPhone низ окна уходит под панель Safari).
+let vkVis=0;
+// Два невидимых датчика: на всё окно и на его нижнюю половину (у второго доля видимости меняется и тогда,
+// когда страница VK сдвигается, а окно игры выступает за экран и сверху, и снизу).
+function vkVisInit(){try{if(typeof IntersectionObserver!='function')return;const th=[];for(let i=0;i<=100;i++)th.push(i/100);
+ const io=new IntersectionObserver(es=>{for(const e of es){const r=e.intersectionRect;if(e.isIntersecting&&r.height>0)vkVis=Math.round(r.bottom)}vkFit()},{threshold:th});
+ ['top:0;height:100%','bottom:0;height:50%'].forEach(css=>{const s=document.createElement('div');s.style.cssText='position:fixed;left:0;width:1px;pointer-events:none;opacity:0;'+css;document.body.appendChild(s);io.observe(s)})}catch(e){}}
+function vkFit(c){try{if(c&&typeof c=='object')vkVP=c;const q=vkQ();if(!q||q.get('vk_platform')!='mobile_web')return;
+ const ih=innerHeight,a=vkH(vkVP,ih),b=vkVis>240&&vkVis<ih-4?vkVis:0,h=a&&b?Math.min(a,b):a||b,v=h?h+'px':'';if(document.body.style.height!==v){document.documentElement.style.height=v;document.body.style.height=v;fitK='';fitArena()}}catch(e){}}
+const vkDiag=()=>{try{const v=vkVP||{},q=vkQ();return (q&&q.get('vk_platform')||'?')+' · '+innerWidth+'×'+innerHeight+' · '+(v.viewport_height||'-')+'/'+(v.avail_height||'-')+' · '+(vkVis||'-')}catch(e){return ''}};
 function vkPre(){try{PF.sdk.send('VKWebAppCheckNativeAds',{ad_format:'reward'}).catch(()=>{})}catch(e){}}
 // реклама VK: игра на паузе и без звука, пока открыт ролик; награда — только если ролик показан (result: true)
 function vkAd(fmt,onDone,onFail){adWait(true);pause(true);const end=()=>{pause(false);adWait(false)};
@@ -165,7 +173,7 @@ async function pfInit(){
  try{if(window.YaGames){ysdk=await YaGames.init();player=await ysdk.getPlayer();syncTime();PF.kind='ya'}}catch(e){ysdk=null}}
 // язык: ?lang=, затем язык из SDK площадки, затем браузера; русский для ru/be/uk/kk, иначе английский
 function pfLang(){let l='';try{const q=new URLSearchParams(location.search).get('lang');if(q)return q=='ru'?'ru':'en'}catch(e){}
- try{if(PF.kind=='vk'){const q=vkQ();l=(q&&q.get('vk_language'))||'ru'}else if(PF.kind=='cg'){const si=PF.sdk.user&&PF.sdk.user.systemInfo;l=(si&&si.locale)||''}else if(ysdk)l=ysdk.environment.i18n.lang}catch(e){}
+ try{const vq=vkQ();if(PF.kind=='vk'||(vq&&vq.get('vk_app_id'))){l=(vq&&vq.get('vk_language'))||'ru'}else if(PF.kind=='cg'){const si=PF.sdk.user&&PF.sdk.user.systemInfo;l=(si&&si.locale)||''}else if(ysdk)l=ysdk.environment.i18n.lang}catch(e){}
  if(!l)try{l=navigator.language||''}catch(e){}
  return /^(ru|be|uk|kk)/i.test(l)?'ru':'en'}
 function adWait(on){const w=$('adwait');if(w)w.hidden=!on}
@@ -191,10 +199,15 @@ const snd=()=>{if(!sound)return false;try{if(PF.kind=='cg'&&PF.sdk.game.settings
 function submitScore(){if(S.cheat||!ysdk)return;if(NOW()-lbT<20000){lbP=true;return}lbT=NOW();lbP=false;try{if(ysdk.leaderboards&&ysdk.leaderboards.setScore)ysdk.leaderboards.setScore('floors',S.max).catch(()=>{});else if(ysdk.getLeaderboards)ysdk.getLeaderboards().then(l=>l.setLeaderboardScore('floors',S.max)).catch(()=>{})}catch(e){}}
 function showLB(){if(!ysdk)return modal('<p>'+t('Лидерборд доступен в Яндекс Играх.','The leaderboard is available on Yandex Games.')+'</p>'+okB());
  ysdk.getLeaderboards().then(l=>l.getLeaderboardEntries('floors',{quantityTop:10})).then(r=>modal('<h3>'+t('Топ-10','Top 10')+'</h3>'+r.entries.map(e=>`<p>${e.rank}. ${e.player.publicName||t('Игрок','Player')} — ${e.score}</p>`).join('')+'<button onclick="closeM()">'+t('Закрыть','Close')+'</button>')).catch(()=>{})}
-function save(f){S.last=NOW();const j=JSON.stringify(S);storeSet(j,f);if(player&&(f||NOW()-ysT>10000)){ysT=NOW();player.setData({s:j}).catch(()=>{})}}
+let loaded=false; // до загрузки сохранения ничего не пишем — иначе сворачивание в первые секунды затёрло бы прогресс пустым
+function save(f){if(!loaded)return;S.last=NOW();const j=JSON.stringify(S);storeSet(j,f);if(player&&(f||NOW()-ysT>10000)){ysT=NOW();player.setData({s:j}).catch(()=>{})}}
 async function load(){let d=null;try{if(player){const r=await player.getData();if(r.s)d=r.s}}catch(e){}
  if(!d)d=storeGet();
- if(d)try{S=Object.assign(S0(),JSON.parse(d))}catch(e){}if(S.tot<S.souls)S.tot=S.souls;if(!S.vv){if(S.vol&&S.vol[0]==.7&&S.vol[1]==.3)S.vol=[.25,.25];S.vv=1}S.g=GODS.map((_,i)=>S.g[i]|0);S.w=WEAPONS.map((_,i)=>S.w[i]|0);S.t=TN.map((_,i)=>S.t[i]|0);}
+ if(d)try{S=Object.assign(S0(),JSON.parse(d))}catch(e){}normS()}
+function normS(){if(S.tot<S.souls)S.tot=S.souls;if(!S.vv){if(S.vol&&S.vol[0]==.7&&S.vol[1]==.3)S.vol=[.25,.25];S.vv=1}S.g=GODS.map((_,i)=>S.g[i]|0);S.w=WEAPONS.map((_,i)=>S.w[i]|0);S.t=TN.map((_,i)=>S.t[i]|0)}
+// первый кадр: пока подключается площадка (VK/Яндекс/CrazyGames — до 1–3 с), сразу рисуем арену по локальной копии сохранения,
+// иначе секунду-две виден пустой красный экран и эмодзи вместо моба. Потом load() берёт настоящее сохранение площадки.
+function preDraw(){try{let d=null;try{d=localStorage.getItem('hades')}catch(e){}if(d){S=Object.assign(S0(),JSON.parse(d));normS()}setTexts(S.lang||pfLang());spawn();tabRender()}catch(e){}S=S0()}
 function offline(){const sec=Math.min(8*3600+1800*S.t[7],(NOW()-S.last)/1e3),g=dps()*sec*.05*(1+.5*pt(11));
  if(sec>60&&g>0)modal(`<h3>${t('Пока вас не было','While you were away')}</h3><p>${t('Вы заработали','You earned')} <i class="coin"></i>${fmt(g)}</p><button id="o1">${t('Забрать','Collect')}</button>${adsOff()?'':`<button id="o2">${ico('play')} ${t('Удвоить x2','Double x2')}</button>`}`),
   $('o1').onclick=()=>{S.gold+=g;closeM();tabRender()},$('o2')&&($('o2').onclick=()=>rewarded(()=>{S.gold+=g*2;closeM();tabRender()}))}
@@ -249,8 +262,8 @@ reset:y=>{if(y!='yes')return'подтвердите: reset yes';S=S0();TS=1;spaw
 const DR=['help','state','get','save','reset'];
 function devExec(line){if(!devOK())return'консоль отключена';const[c,...a]=line.trim().split(/\s+/),f=DC[c];if(!f)return'неизвестная команда: '+c+' (help)';
  try{const r=f(...a);if(!DR.includes(c))S.cheat=true;return r}catch(e){return'ошибка: '+e.message}}
-async function init(){devInit();uiInit();$('list').addEventListener('pointerdown',()=>{lpDown=true;lpT=NOW()});['pointerup','pointercancel'].forEach(e=>document.addEventListener(e,()=>{lpDown=false;lpT=NOW()}));document.addEventListener('visibilitychange',()=>{if(document.hidden){audVis(true);save(true);lbFlush(true);if(PF.kind!='cg')gp(false)}else{audVis(false);if(PF.kind!='cg')gp(!paused);offline()}});await pfInit();try{document.body.classList.add('pf-'+PF.kind);if(adsOff())document.body.classList.add('noads')}catch(e){}
- await load();setTexts(S.lang||pfLang());S.b.forEach((b,i)=>{if(b[1])b[1]=Math.min(b[1],NOW()+hTime(i)*1e3)}); // стройки по старым долгим таймерам — укоротить
+async function init(){devInit();uiInit();$('list').addEventListener('pointerdown',()=>{lpDown=true;lpT=NOW()});['pointerup','pointercancel'].forEach(e=>document.addEventListener(e,()=>{lpDown=false;lpT=NOW()}));document.addEventListener('visibilitychange',()=>{if(document.hidden){audVis(true);save(true);lbFlush(true);if(PF.kind!='cg')gp(false)}else{audVis(false);if(PF.kind!='cg')gp(!paused);offline()}});preDraw();await pfInit();try{document.body.classList.add('pf-'+PF.kind);if(adsOff())document.body.classList.add('noads')}catch(e){}
+ await load();loaded=true;setTexts(S.lang||pfLang());S.b.forEach((b,i)=>{if(b[1])b[1]=Math.min(b[1],NOW()+hTime(i)*1e3)}); // стройки по старым долгим таймерам — укоротить
  if(S.max>30&&!S.tut)S.tut=9;achCheck(true);applyCos();skBuild();spawn();tabRender();offline();
  if(ysdk&&ysdk.features&&ysdk.features.LoadingAPI)ysdk.features.LoadingAPI.ready();if(PF.kind=='cg')try{PF.sdk.game.loadingStop()}catch(e){}gp(true);
  setInterval(save,15000);setInterval(musTick,400);setInterval(audVol,1000);requestAnimationFrame(loop)}
