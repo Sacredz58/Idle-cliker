@@ -135,7 +135,7 @@ const vkTO=(p,ms)=>Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error
 async function vkGet(keys){const r=await vkTO(PF.sdk.send('VKWebAppStorageGet',{keys}),4000),o={};((r&&r.keys)||[]).forEach(k=>{o[k.key]=k.value});return o}
 async function vkInit(){const B=window.vkBridge;PF.kind='vk';PF.sdk=B;if(!VK_ADS)PF.noAds=true;
  try{await Promise.race([B.send('VKWebAppInit',{}),new Promise(r=>setTimeout(r,3000))])}catch(e){}
- try{const vq=vkQ();if(vq&&vq.get('vk_platform')=='mobile_web')vkVisInit();vkTO(B.send('VKWebAppGetConfig',{}),4000).then(vkFit).catch(()=>{});addEventListener('resize',()=>vkFit())}catch(e){}
+ try{const vq=vkQ();if(vq&&vq.get('vk_platform')=='mobile_web'){vkVisInit();setTimeout(vkProbe,800)}vkTO(B.send('VKWebAppGetConfig',{}),4000).then(vkFit).catch(()=>{});addEventListener('resize',()=>vkFit())}catch(e){}
  try{B.subscribe(e=>{const ty=e&&e.detail&&e.detail.type;if(ty=='VKWebAppUpdateConfig')vkFit(e.detail.data);else if(ty=='VKWebAppViewHide'){audVis(true);save(true)}else if(ty=='VKWebAppViewRestore')audVis(false)})}catch(e){}
  try{const n=parseInt((await vkGet(['svn'])).svn)||0;if(n>0&&n<500){const ks=[...Array(n)].map((_,i)=>'sv'+i),r={};for(let i=0;i<n;i+=100)Object.assign(r,await vkGet(ks.slice(i,i+100)));vkC=ks.map(k=>r[k]||'');vkCloud=vkC.join('')}}catch(e){console.warn('[Underworld Escape] VK storage',e)}
  vkPre()}
@@ -145,18 +145,23 @@ function vkSave(j,f){if(NOW()-vkT<(f?10000:VK_GAP))return;vkT=NOW();const B=PF.s
 // низ уходит под панель Safari и не видно нижнего меню. VK сообщает видимую высоту (avail_height/viewport_height) —
 // если она меньше высоты окна игры, ужимаем страницу до неё.
 let vkVP=null;
-function vkH(v,ih){if(!v)return 0;const tg=+v.avail_height||+v.viewport_height||0;return tg>240&&tg<ih-4?Math.floor(tg):0}
+function vkH(v,ih){if(!v)return 0;const c=[+v.avail_height,+v.viewport_height].filter(x=>x>240&&x<ih-4);return c.length?Math.floor(Math.min(...c)):0}
 // Второй источник — сама страница: IntersectionObserver в iframe считает пересечение с видимой областью ВСЕЙ страницы VK,
 // поэтому видно, где кончается видимая часть окна игры (на iPhone низ окна уходит под панель Safari).
-let vkVis=0;
+let vkVis=0,vkHdr=0;
+// Третий способ (iPhone, m.vk.ru): окно игры стоит под шапкой VK «⋯ ×» и выше видимой части ровно на её высоту.
+// Просим VK прокрутить страницу до конца (VKWebAppScroll): насколько она сдвинулась — такова высота шапки.
+// Возвращаем страницу наверх и уменьшаем игру на эту величину. Если VK не сообщил сдвиг — оставляем прокрученной: так игра видна целиком.
+async function vkProbe(){try{const B=PF.sdk,r=await vkTO(B.send('VKWebAppScroll',{top:100000,speed:0}),3000),top=Math.round(+(r&&r.top)||0);
+ if(top>0&&top<innerHeight/3){vkHdr=top;try{await vkTO(B.send('VKWebAppScroll',{top:0,speed:0}),3000)}catch(e){}}vkFit()}catch(e){}}
 // Два невидимых датчика: на всё окно и на его нижнюю половину (у второго доля видимости меняется и тогда,
 // когда страница VK сдвигается, а окно игры выступает за экран и сверху, и снизу).
 function vkVisInit(){try{if(typeof IntersectionObserver!='function')return;const th=[];for(let i=0;i<=100;i++)th.push(i/100);
  const io=new IntersectionObserver(es=>{for(const e of es){const r=e.intersectionRect;if(e.isIntersecting&&r.height>0)vkVis=Math.round(r.bottom)}vkFit()},{threshold:th});
  ['top:0;height:100%','bottom:0;height:50%'].forEach(css=>{const s=document.createElement('div');s.style.cssText='position:fixed;left:0;width:1px;pointer-events:none;opacity:0;'+css;document.body.appendChild(s);io.observe(s)})}catch(e){}}
 function vkFit(c){try{if(c&&typeof c=='object')vkVP=c;const q=vkQ();if(!q||q.get('vk_platform')!='mobile_web')return;
- const ih=innerHeight,a=vkH(vkVP,ih),b=vkVis>240&&vkVis<ih-4?vkVis:0,h=a&&b?Math.min(a,b):a||b,v=h?h+'px':'';if(document.body.style.height!==v){document.documentElement.style.height=v;document.body.style.height=v;fitK='';fitArena()}}catch(e){}}
-const vkDiag=()=>{try{const v=vkVP||{},q=vkQ();return (q&&q.get('vk_platform')||'?')+' · '+innerWidth+'×'+innerHeight+' · '+(v.viewport_height||'-')+'/'+(v.avail_height||'-')+' · '+(vkVis||'-')}catch(e){return ''}};
+ const ih=innerHeight,cs=[vkH(vkVP,ih),vkVis,vkHdr?ih-vkHdr:0].filter(x=>x>240&&x<ih-4),h=cs.length?Math.min(...cs):0,v=h?h+'px':'';if(document.body.style.height!==v){document.documentElement.style.height=v;document.body.style.height=v;fitK='';fitArena()}}catch(e){}}
+const vkDiag=()=>{try{const v=vkVP||{},q=vkQ();return (q&&q.get('vk_platform')||'?')+' · '+innerWidth+'×'+innerHeight+' · '+(v.viewport_height||'-')+'/'+(v.avail_height||'-')+' · '+(vkVis||'-')+' · '+(vkHdr||'-')}catch(e){return ''}};
 function vkPre(){try{PF.sdk.send('VKWebAppCheckNativeAds',{ad_format:'reward'}).catch(()=>{})}catch(e){}}
 // реклама VK: игра на паузе и без звука, пока открыт ролик; награда — только если ролик показан (result: true)
 function vkAd(fmt,onDone,onFail){adWait(true);pause(true);const end=()=>{pause(false);adWait(false)};
@@ -265,7 +270,7 @@ reset:y=>{if(y!='yes')return'подтвердите: reset yes';S=S0();TS=1;spaw
 const DR=['help','state','get','save','reset'];
 function devExec(line){if(!devOK())return'консоль отключена';const[c,...a]=line.trim().split(/\s+/),f=DC[c];if(!f)return'неизвестная команда: '+c+' (help)';
  try{const r=f(...a);if(!DR.includes(c))S.cheat=true;return r}catch(e){return'ошибка: '+e.message}}
-async function init(){devInit();uiInit();$('list').addEventListener('pointerdown',()=>{lpDown=true;lpT=NOW()});['pointerup','pointercancel'].forEach(e=>document.addEventListener(e,()=>{lpDown=false;lpT=NOW()}));document.addEventListener('visibilitychange',()=>{if(document.hidden){audVis(true);save(true);lbFlush(true);if(PF.kind!='cg')gp(false)}else{audVis(false);if(PF.kind!='cg')gp(!paused);offline()}});preDraw();await pfInit();try{document.body.classList.add('pf-'+PF.kind);if(adsOff())document.body.classList.add('noads')}catch(e){}
+async function init(){sfxPre();devInit();uiInit();$('list').addEventListener('pointerdown',()=>{lpDown=true;lpT=NOW()});['pointerup','pointercancel'].forEach(e=>document.addEventListener(e,()=>{lpDown=false;lpT=NOW()}));document.addEventListener('visibilitychange',()=>{if(document.hidden){audVis(true);save(true);lbFlush(true);if(PF.kind!='cg')gp(false)}else{audVis(false);if(PF.kind!='cg')gp(!paused);offline()}});preDraw();await pfInit();try{document.body.classList.add('pf-'+PF.kind);if(adsOff())document.body.classList.add('noads')}catch(e){}
  await load();loaded=true;setTexts(S.lang||pfLang());S.b.forEach((b,i)=>{if(b[1])b[1]=Math.min(b[1],NOW()+hTime(i)*1e3)}); // стройки по старым долгим таймерам — укоротить
  if(S.max>30&&!S.tut)S.tut=9;achCheck(true);applyCos();skBuild();spawn();tabRender();offline();
  if(ysdk&&ysdk.features&&ysdk.features.LoadingAPI)ysdk.features.LoadingAPI.ready();if(PF.kind=='cg')try{PF.sdk.game.loadingStop()}catch(e){}gp(true);
@@ -677,7 +682,7 @@ function audInit(){if(AUD&&A)return true;try{AUD=AUD||new(window.AudioContext||w
 function audVol(){if(!A)return;const on=snd()&&!paused,t=A.c.currentTime||0;
  try{A.master.gain.setTargetAtTime(on?1:0,t,.06);A.sfx.gain.setTargetAtTime(S.vol[0]*.9,t,.05);A.mus.gain.setTargetAtTime(S.vol[1]*.8,t,.3)}catch(e){A.master.gain.value=on?1:0;A.sfx.gain.value=S.vol[0]*.9;A.mus.gain.value=S.vol[1]*.8}}
 // первое касание/клавиша разблокирует звук (требование браузеров и iOS)
-function audUnlock(){if(!audInit())return;try{if(AUD.state!='running'&&!document.hidden&&!paused)AUD.resume()}catch(e){}}
+function audUnlock(){if(!audInit())return;try{if(AUD.state!='running'&&!document.hidden&&!paused)AUD.resume()}catch(e){}if(!ELM){sfxLoad();trkLoad()}}
 function audVis(hidden){if(!AUD)return;try{hidden?AUD.suspend():AUD.resume()}catch(e){}}
 // тон с огибающей: f — частота, to — к какой частоте скользить, d — длительность, v — громкость, at — сдвиг старта, w — доля в реверберацию
 function tone(bus,f,d,v,o={}){const c=A.c,t=(c.currentTime||0)+(o.at||0),os=c.createOscillator(),g=c.createGain();os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.to)os.frequency.exponentialRampToValueAtTime(o.to,t+d);
@@ -691,12 +696,17 @@ function noise(bus,d,v,o={}){const c=A.c,t=(c.currentTime||0)+(o.at||0),src=c.cr
 // эффекты из файлов: событие -> файл в sfx/. Грузятся после первого касания вместе с музыкой; в начале файла может быть пауза кодировщика —
 // её пропускаем (SB[k].off). Клик/крит/убийство играются с небольшим разбросом высоты, чтобы частые удары не звучали одинаково
 const SFXF={click:'click',crit:'crit',kill:'kill',buy:'buy',skill:'skill',bossIn:'bossIn',boss:'boss',lose:'lose'},SFXV={click:1,crit:1,kill:1},SB={},SYN_GAIN=2.2;let sbLd=false;
-function sfxLoad(){if(sbLd||!A||typeof fetch!='function')return;sbLd=true;Object.entries(SFXF).forEach(([k,f])=>fetch('sfx/'+f+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(ab=>new Promise((ok,no)=>AUD.decodeAudioData(ab,ok,no))).then(b=>{const d=b.getChannelData(0);let i=0;while(i<d.length&&Math.abs(d[i])<1e-3&&i<b.sampleRate*.1)i++;SB[k]={b,off:i/b.sampleRate}}).catch(()=>{}))}
+// Файлы эффектов и музыки скачиваются сразу при открытии игры (sfxPre), а расшифровываются на первом касании —
+// иначе первые секунды (весь 1-й этаж) звучали старые синтезированные звуки. Пока файл расшифровывается — тишина, не старый звук.
+const SFX_AB={},SBF={};let MUS_AB=null;
+function sfxPre(){try{if(typeof fetch!='function'||location.protocol=='file:')return;const g=u=>{const p=fetch(u).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()});p.catch(()=>{});return p};
+ Object.entries(SFXF).forEach(([k,f])=>{SFX_AB[k]=g('sfx/'+f+'.mp3')});MUS_AB=g(MUS_FILE)}catch(e){}}
+function sfxLoad(){if(sbLd||!A||typeof fetch!='function')return;sbLd=true;Object.entries(SFXF).forEach(([k,f])=>(SFX_AB[k]||fetch('sfx/'+f+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})).then(ab=>new Promise((ok,no)=>AUD.decodeAudioData(ab,ok,no))).then(b=>{const d=b.getChannelData(0);let i=0;while(i<d.length&&Math.abs(d[i])<1e-3&&i<b.sampleRate*.1)i++;SB[k]={b,off:i/b.sampleRate}}).catch(()=>{SBF[k]=1}))}
 function sfxFile(k,p){const s=SB[k];if(!s)return false;const c=A.c,src=c.createBufferSource();src.buffer=s.b;if(SFXV[k])src.playbackRate.value=p;src.connect(A.sfx);src.start(c.currentTime||0,s.off);return true}
 const SFXGAP={click:60,crit:80,kill:110,buy:60,skill:150,reward:250,boss:300,bossIn:500,lose:500,fairy:200},sfxT={};
 const rnd=(a,b)=>a+Math.random()*(b-a);
 function sfx(k){if(!snd()||paused||S.vol[0]<=0)return;if(!audInit()||AUD.state=='suspended')return;const n=performance.now();if(n-(sfxT[k]||-1e9)<(SFXGAP[k]||100))return;sfxT[k]=n;
- try{const p=rnd(.93,1.07);if(ELM?elSfx(k,p):sfxFile(k,p))return;const B=A.syn;switch(k){
+ try{const p=rnd(.93,1.07);if(ELM?elSfx(k,p):sfxFile(k,p))return;if(!ELM&&sbLd&&SFXF[k]&&!SBF[k])return;const B=A.syn;switch(k){
  case'click':noise(B,.06,.16,{bp:1,f:1900*p,to:700,q:1.2});tone(B,150*p,.08,.22,{to:70});break;
  case'crit':noise(B,.08,.2,{bp:1,f:2400,to:900});tone(B,120,.12,.3,{to:55});tone(B,1320*p,.5,.08,{w:.5});tone(B,1987*p,.35,.045,{w:.5});break;
  case'kill':noise(B,.28,.16,{f:1300,to:180});tone(B,230*p,.2,.1,{type:'triangle',to:110});break;
@@ -736,7 +746,7 @@ function elVol(){if(!EL.mus)return;const on=snd()&&!paused&&!document.hidden;try
 function elSfx(k,p){const b=EL.sfx[k];if(!b)return false;try{const a=b.cloneNode();a.volume=Math.min(1,S.vol[0]*.9);if(SFXV[k]){a.preservesPitch=false;a.playbackRate=p}a.play().catch(()=>{});return true}catch(e){return false}}
 const MUS_FILE='music/theme.mp3',MUS_LEN=164.7969,MUS_GAIN=.75,trk={buf:null,src:null,g:null,ld:false};
 function trkLoad(){if(trk.ld||trk.buf||!A||typeof fetch!='function')return;trk.ld=true;
- fetch(MUS_FILE).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(ab=>new Promise((ok,no)=>AUD.decodeAudioData(ab,ok,no))).then(b=>{trk.buf=b}).catch(()=>{setTimeout(()=>{trk.ld=false},6e4)})}
+ const pre=MUS_AB;MUS_AB=null;(pre||fetch(MUS_FILE).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})).then(ab=>new Promise((ok,no)=>AUD.decodeAudioData(ab,ok,no))).then(b=>{trk.buf=b}).catch(()=>{setTimeout(()=>{trk.ld=false},6e4)})}
 function trkPlay(){if(!trk.buf||trk.src)return;const c=AUD,b=trk.buf,d=b.getChannelData(0);let i=0;while(i<d.length&&Math.abs(d[i])<1e-4&&i<c.sampleRate)i++;
  const off=i/b.sampleRate,src=c.createBufferSource(),g=c.createGain(),t=c.currentTime||0;src.buffer=b;src.loop=true;src.loopStart=off;src.loopEnd=Math.min(b.duration,off+MUS_LEN);
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(MUS_GAIN,t+2.5);src.connect(g);g.connect(A.mus);src.start(t,off);trk.src=src;trk.g=g}
