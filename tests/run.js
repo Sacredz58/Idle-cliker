@@ -576,8 +576,15 @@ ctx.__cg.calls=[];run('interstitial(()=>__dn())');ok('CG midgame: not more often
 ctx.__cg.next='unfilled';run('S.adT=0;interstitial(()=>__dn())');ok('CG midgame error: game continues',dn===3);
 run('save(true)');ok('CG save goes to the Data module',typeof ctx.__cg.data.hades==='string'&&JSON.parse(ctx.__cg.data.hades).floor>=1);
 ctx.__cg.data.hades=JSON.stringify(Object.assign(JSON.parse(ctx.__cg.data.hades),{floor:4321}));await run('load()');ok('CG load reads the Data module',run('S.floor')===4321);
+ok('CG save: copy kept in localStorage too',JSON.parse(ls.hades).floor>=1);
+run('S.floor=555;save(true)');run('PF.sdk.data.setItem=()=>{throw {code:"dataModuleDisabled"}};PF.sdk.data.getItem=()=>{throw {code:"dataModuleDisabled"}}');run('S.floor=556;save(true)');run('S=S0()');await run('load()');
+ok('CG Data module disabled: progress still loads from localStorage',run('S.floor')===556&&run('cgSv')==='dataModuleDisabled');
+run('PF.sdk.data.setItem=(k,v)=>{__cg.data[k]=v};PF.sdk.data.getItem=k=>__cg.data[k]||null');ctx.__cg.data={};run('S=S0()');await run('load()');ok('CG empty cloud: local save is used',run('S.floor')===556);
+run('save(true)');ctx.__cg.data.hades=JSON.stringify(Object.assign(JSON.parse(ctx.__cg.data.hades),{floor:9000,last:1e15}));run('S=S0()');await run('load()');ok('CG: newer cloud save (other device) wins',run('S.floor')===9000);
+run('openCfg()');ok('CG settings show a save diagnostics line',els.mbox.innerHTML.includes('CrazyGames ·')&&els.mbox.innerHTML.includes('save ok'));run('closeM()');
 ctx.__cg.mute=true;ok('CG muteAudio overrides the game sound',run('snd()')===false&&run('sound')===true);ctx.__cg.mute=false;ok('CG unmuted -> sound on',run('snd()')===true);
 ctx.__cg.calls=[];reset();run('PF.kind="cg";S.floor=500;spawn();dealt(1e300,false,0,0)');ok('CG happytime after an act boss',ctx.__cg.calls.includes('happy'));
+ctx.__cg.calls=[];run('PF.kind="cg";paused=false;closeM();openCfg()');ok('CG: opening a window sends gameplayStop, closing sends gameplayStart',ctx.__cg.calls.includes('gpStop')&&(run('closeM()'),ctx.__cg.calls.lastIndexOf('gpStart')>ctx.__cg.calls.indexOf('gpStop')));
 run('tab="rew";tabRender()');ok('CG: Hermes boost and Charon chest live in the Rewards tab',els.list.innerHTML.includes('hermesAd()')&&els.list.innerHTML.includes('chestAd()'));
 run('PF.kind="local";PF.sdk=null;PF.noAds=false;PF.adblock=false');
 // ---------- VK (mocked VK Bridge) ----------
@@ -635,6 +642,7 @@ ok('wide layout: after a boss loss «Fight the boss» gets its own full row, vid
 {const b=fs.readFileSync(ROOT+'/build.sh','utf8');ok('build adds a version tag to game.js/style.css (no stale cache after an update)',b.includes('game.js?v=$h')&&b.includes('style.css?v=$h'))}
 ok('tutorial highlight inside the list stays under the sticky section header',css5.includes('#list .hl{z-index:1}'))
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('sound files are prefetched at start and decoded on the first touch; no old synth sound while loading',g.includes('async function init(){sfxPre();')&&g.includes('if(!ELM){sfxLoad();trkLoad()}')&&g.includes('if(!ELM&&sbLd&&SFXF[k]&&!SBF[k])return;'))}
+ok('CG: the game really pauses while a window is open',fs.readFileSync(ROOT+'/game.js','utf8').includes("function loop(t){if(paused||(PF.kind=='cg'&&!$('modal').hidden))"));
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
 ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
 }

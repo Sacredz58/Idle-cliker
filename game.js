@@ -62,7 +62,8 @@ function draw(){adUI();skUI();lootUI();$('nec').textContent=fmt(S.nec);$('hp').s
  $('cd').textContent=fmt(clickD());$('dps').textContent=fmt(dps());$('gold').textContent=fmt(S.gold);$('souls').textContent=fmt(S.souls);
  $('rageb').style.width=(rage>0?rage/8*100:Math.min(100,clicks.length/(12-3*pt(5))*100))+'%'}
 let lt=performance.now();
-function loop(t){if(paused){lt=t;requestAnimationFrame(loop);return}const dt=Math.min(.25,(t-lt)/1e3)*TS;lt=t;
+function loop(t){if(paused||(PF.kind=='cg'&&!$('modal').hidden)){lt=t;requestAnimationFrame(loop);return} // CrazyGames: пока открыто окно — настоящая пауза (совпадает с gameplayStop)
+const dt=Math.min(.25,(t-lt)/1e3)*TS;lt=t;
  if(rage>0){rage-=dt;if(rage<=0){rage=0;$('rage').classList.remove('on')}}
  zt+=dt;S.st.t=(S.st.t||0)+dt/TS;if(pt(0)&&zt>=8&&wait<=0){zt=0;dealt(dps()*10*pt(0),true,150,110)}if(inBoss){bossT-=dt;if(bossT<=0)lose()}
  {let T=dt,g=0;const d=dps();while(T>0&&g++<MAXK){if(wait>0){const u=Math.min(wait,T);wait-=u;T-=u;if(wait<=0)$('monster').classList.remove('gone');continue}
@@ -119,8 +120,9 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>navGo(b.dataset
 function prestige(){const g=soulGain();if(g<1||pcd()>0)return;
  const done=()=>{if(pcd()>0)return;const f0=startF(),k={pt:NOW(),cheat:S.cheat,max:S.max,souls:S.souls+g,tot:S.tot+g,hermes:S.hermes,chest:S.chest,ac:S.ac,loot:S.loot,vol:S.vol,lang:S.lang,st:S.st,achN:S.achN,ach:S.ach,tut:S.tut,td:S.td,tipF:S.tipF,pc:S.pc+1,sl:S.sl,nec:S.nec,own:S.own,skin:S.skin,theme:S.theme,gf:S.gf,adT:S.adT,t:S.t,inv:S.inv,eq:S.eq,b:S.b,day:S.day,dl:S.dl,q:S.q};S=Object.assign(S0(),k);S.farm=false;S.floor=f0;S.sf=f0;S.run=f0;S.gold=skipGold(f0);spawn();tabRender();save()};
  interstitial(done)}
-function modal(h){$('mbox').innerHTML=h;$('modal').hidden=false}
-function closeM(){$('modal').hidden=true}
+// CrazyGames: открытое окно (настройки, справка, награды) — это пауза в игровом процессе: gameplayStop, закрыли — gameplayStart
+function modal(h){$('mbox').innerHTML=h;if(PF.kind=='cg'&&$('modal').hidden&&!paused)gp(false);$('modal').hidden=false}
+function closeM(){if(PF.kind=='cg'&&!$('modal').hidden&&!paused)gp(true);$('modal').hidden=true}
 // ---- Платформы: Яндекс Игры (ya), CrazyGames (cg), Игры ВКонтакте (vk) или локальный запуск (local) ----
 const CG_ADS=false; // CrazyGames: false — Basic Launch (рекламы нет, кнопки видео скрыты); для Full Launch собрать: CG_ADS=1 bash build.sh
 const PF={kind:'local',sdk:null,noAds:false,adblock:false,t0:Date.now()};
@@ -200,9 +202,12 @@ function interstitial(done){if(PF.kind=='vk'){if(adsOff()||NOW()-S.adT<=240000||
  if(PF.kind=='cg'){if(adsOff()||NOW()-S.adT<=240000)return done();S.adT=NOW();cgAd('midgame',done,er=>{if(er&&er.code=='adsDisabledBasicLaunch')PF.noAds=true;done()});return}
  if(ysdk&&NOW()-S.adT>240000){S.adT=NOW();ysdk.adv.showFullscreenAdv({callbacks:{onOpen:()=>pause(true),onClose:()=>{pause(false);done()},onError:()=>{pause(false);done()}}})}else done()}
 function happy(){if(PF.kind=='cg')try{PF.sdk.game.happytime()}catch(e){}}
-function storeSet(j,f){if(PF.kind=='cg'){try{PF.sdk.data.setItem('hades',j)}catch(e){}return}try{localStorage.setItem('hades',j)}catch(e){}if(PF.kind=='vk')vkSave(j,f)}
-function storeGet(){if(PF.kind=='vk'){let l=null;try{l=localStorage.getItem('hades')}catch(e){}const lt=x=>{try{return JSON.parse(x).last||0}catch(e){return -1}};return !vkCloud?l:!l?vkCloud:lt(vkCloud)>=lt(l)?vkCloud:l}
- try{return PF.kind=='cg'?PF.sdk.data.getItem('hades'):localStorage.getItem('hades')}catch(e){return null}}
+// копия в localStorage пишется ВСЕГДА: если у площадки облако выключено или сбоит (CrazyGames без «Progress Save» — dataModuleDisabled), прогресс не теряется
+let cgSv='',cgLd='';
+function storeSet(j,f){try{localStorage.setItem('hades',j)}catch(e){}if(PF.kind=='cg')try{PF.sdk.data.setItem('hades',j);cgSv='ok'}catch(e){if(cgSv=='ok'||!cgSv)console.warn('[Underworld Escape] CrazyGames save error',e);cgSv=(e&&(e.code||e.message))||'err'}if(PF.kind=='vk')vkSave(j,f)}
+function storeGet(){let l=null,c=null;try{l=localStorage.getItem('hades')}catch(e){}
+ if(PF.kind=='vk')c=vkCloud;else if(PF.kind=='cg')try{c=PF.sdk.data.getItem('hades');cgLd=c?'cloud':'empty'}catch(e){cgLd='err:'+((e&&(e.code||e.message))||'?');console.warn('[Underworld Escape] CrazyGames load error',e)}
+ const lt=x=>{try{return JSON.parse(x).last||0}catch(e){return -1}};return !c?l:!l?c:lt(c)>=lt(l)?c:l}
 const snd=()=>{if(!sound)return false;try{if(PF.kind=='cg'&&PF.sdk.game.settings&&PF.sdk.game.settings.muteAudio)return false}catch(e){}return true};
 function submitScore(){if(S.cheat||!ysdk)return;if(NOW()-lbT<20000){lbP=true;return}lbT=NOW();lbP=false;try{if(ysdk.leaderboards&&ysdk.leaderboards.setScore)ysdk.leaderboards.setScore('floors',S.max).catch(()=>{});else if(ysdk.getLeaderboards)ysdk.getLeaderboards().then(l=>l.setLeaderboardScore('floors',S.max)).catch(()=>{})}catch(e){}}
 function showLB(){if(!ysdk)return modal('<p>'+t('Лидерборд доступен в Яндекс Играх.','The leaderboard is available on Yandex Games.')+'</p>'+okB());
@@ -397,7 +402,7 @@ function openHelp(){const H=[
  ['icons/fairy',t('Фея','Fairy'),t('Иногда пролетает над ареной — поймайте её, чтобы получить золото, Нектар или ускорение.','Sometimes flies across the arena — catch her for gold, Nectar or a speed boost.'),''],
  ['ui/gift_7',t('Пока вас нет','While you are away'),t('Боги продолжают приносить золото до 8 часов. Заберите его, когда вернётесь.','Gods keep earning gold for up to 8 hours. Collect it when you come back.'),'']];
  modal(`<div class="help"><h3>${ico('help')} ${t('Как играть','How to play')}</h3>${H.map(([im,n,d,tb])=>`<div class="hrow${tb?' go':''}"${tb?` onclick="closeM();navGo('${tb}')"`:''}><span class="it art"><img class="pi" src="img/${im}.webp" alt="" loading="lazy"></span><div><b>${n}</b><small>${d}</small></div>${tb?ico('up'):''}</div>`).join('')}<button onclick="closeM()">${t('Понятно','Got it')}</button></div>`)}
-function openCfg(){modal(`<h3>${ico('gear')} ${t('Настройки','Settings')}</h3><p>${t('Эффекты','Effects')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[0]*100)}" oninput="setVol(0,this.value)"></p><p>${t('Музыка','Music')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[1]*100)}" oninput="setVol(1,this.value)"></p><p>${t('Язык','Language')}<br><button onclick="setLang('ru')">RU</button><button onclick="setLang('en')">EN</button></p>${PF.kind=='vk'?`<p><button onclick="vkShare()">${t('Рассказать друзьям','Tell friends')}</button>${VK_SUPPORT?`<button onclick="window.open(VK_SUPPORT,'_blank')">${t('Поддержка','Support')}</button>`:''}</p><p class="diag">${vkDiag()}</p>`:''}${okB()}`)}
+function openCfg(){modal(`<h3>${ico('gear')} ${t('Настройки','Settings')}</h3><p>${t('Эффекты','Effects')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[0]*100)}" oninput="setVol(0,this.value)"></p><p>${t('Музыка','Music')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[1]*100)}" oninput="setVol(1,this.value)"></p><p>${t('Язык','Language')}<br><button onclick="setLang('ru')">RU</button><button onclick="setLang('en')">EN</button></p>${PF.kind=='vk'?`<p><button onclick="vkShare()">${t('Рассказать друзьям','Tell friends')}</button>${VK_SUPPORT?`<button onclick="window.open(VK_SUPPORT,'_blank')">${t('Поддержка','Support')}</button>`:''}</p><p class="diag">${vkDiag()}</p>`:''}${PF.kind=='cg'?`<p class="diag">CrazyGames · ${(()=>{try{return PF.sdk.environment}catch(e){return'?'}})()} · load ${cgLd||'-'} · save ${cgSv||'-'} · local ${(()=>{try{return localStorage.getItem('hades')?'yes':'no'}catch(e){return'blocked'}})()}</p>`:''}${okB()}`)}
 // Шторка на телефоне: стрелку над списком можно нажать или потянуть вверх — список вкладки раскрывается на весь экран
 // (арена прячется, валюта сверху и меню снизу остаются); вниз — обратно. В начале боя с боссом шторка сама сворачивается.
 function sheet(on){try{const b=document.body;if(on===undefined)on=!b.classList.contains('sheet');b.classList.toggle('sheet',on);const g=$('grip');
