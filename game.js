@@ -38,7 +38,7 @@ function kill(){const f=S.floor;sfx(isBoss(f)?'boss':'kill');wait=SPAWN_DELAY;ki
  if(f>=10000&&isBoss(f)){S.st.win=(S.st.win||0)+1;modal(t('<h3>Хаос повержен!</h3><p>Вы вышли из Подземелья. Перерождение откроет новый круг.</p>','<h3>Chaos is defeated!</h3><p>You have escaped the Underworld. Rebirth starts a new cycle.</p>')+'<button onclick="closeM()">'+t('Дальше','Continue')+'</button>');happy();}
  else if(clr&&f<10000)S.floor++;
  if(clr&&[500,2000,4500,7000,9000].includes(f)){happy();interstitial(()=>{})}
- else if(clr&&isBoss(f)&&PF.kind=='cg')interstitial(()=>{}); // CrazyGames: реклама между уровнями после победы над боссом (не чаще раза в 4 мин; в Basic Launch выключена)
+ else if(clr&&isBoss(f)&&(PF.kind=='cg'||PF.kind=='pk'))interstitial(()=>{}); // CrazyGames: реклама между уровнями после победы над боссом (не чаще раза в 4 мин; в Basic Launch выключена)
  spawn();if(tab=='inv'||tab=='quest'||tab=='pres'||tab=='top')dirty=true;sv()}
 function lose(){sfx('lose');S.st.l=(S.st.l||0)+1;wait=0;$('monster').classList.remove('gone');S.floor--;S.farm=true;inBoss=false;spawn();bossT=0;save()}
 function dealt(d,crit,x,y){hp-=d;float(d,crit,x,y);if(hp<=0)kill();draw()}
@@ -169,12 +169,28 @@ function vkPre(){try{PF.sdk.send('VKWebAppCheckNativeAds',{ad_format:'reward'}).
 function vkAd(fmt,onDone,onFail){adWait(true);pause(true);const end=()=>{pause(false);adWait(false)};
  try{PF.sdk.send('VKWebAppShowNativeAds',{ad_format:fmt}).then(d=>{end();d&&d.result?onDone():onFail()}).catch(()=>{end();onFail()})}catch(e){end();onFail()}}
 function vkShare(){try{const q=vkQ(),id=q&&q.get('vk_app_id');PF.sdk.send('VKWebAppShare',{link:'https://vk.com/app'+id}).catch(()=>{})}catch(e){}}
+// ---- Пикабу Игры: PkbSDK (https://games.pikabu.ru/sdk/sdk.js, подключается только в сборке dist/pikabu) ----
+// Облачные сохранения обязательны для каталога (sdk.storage, до 200 КБ); копия всегда и в localStorage.
+// Покупки за деньги у Пикабу требуют своего сервера для проверки подписи — в этой сборке их нет (как в VK).
+const pkOn=()=>typeof window!='undefined'&&!!window.PkbSDK;
+let pkFl=0,pkSv='';
+async function pkInit(){const sdk=await vkTO(window.PkbSDK.init(),6000);PF.kind='pk';PF.sdk=sdk;
+ try{if(!sdk.ads.rewarded.isSupported)PF.noAds=true}catch(e){PF.noAds=true}
+ try{sdk.on('storageSaveError',r=>{pkSv=r||'err';console.warn('[Underworld Escape] Pikabu save error',r)})}catch(e){}
+ // реклама при загрузке: SDK показывает её только на телефонах и только до gameStarted(); звука ещё нет (он включается после первого касания)
+ try{const pr=sdk.ads.preloader;if(pr&&pr.isSupported&&await vkTO(pr.canShow(),3000))await vkTO(pr.show(),90000)}catch(e){}}
+function pkSave(j,f){try{PF.sdk.storage.set('hades',j);if(f&&NOW()-pkFl>15000){pkFl=NOW();PF.sdk.storage.flush().then(r=>{if(r&&!r.success)pkSv=r.reason||'err'}).catch(()=>{})}}catch(e){pkSv='err'}}
+// реклама Пикабу: перед показом canShow(); игра на паузе и без звука, пока идёт ролик; награда — только при reward:true
+async function pkAd(kind,onDone,onFail){let A=null,ok=false;try{A=PF.sdk.ads[kind];ok=A.isSupported&&await A.canShow()}catch(e){}if(!ok)return onFail(null);
+ adWait(true);pause(true);let r=null;try{r=await A.show()}catch(e){}pause(false);adWait(false);
+ if(kind=='rewarded'?r&&r.reward:r&&r.rendered)onDone();else onFail(r)}
 const shopYa=()=>PF.kind=='ya'||PF.kind=='local'; // покупки Нектара и лидерборд — только Яндекс Игры (и локально для проверки)
 const VK_ADS=true; // ВКонтакте: реклама за вознаграждение и межстраничная; выключить до подключения монетизации — VK_ADS=0 bash build.sh
-const adsOff=()=>(PF.kind=='cg'||PF.kind=='vk')&&(PF.noAds||PF.adblock);
+const adsOff=()=>(PF.kind=='cg'||PF.kind=='vk'||PF.kind=='pk')&&(PF.noAds||PF.adblock);
 const okB=()=>'<button onclick="closeM()">'+t('Ок','OK')+'</button>';
 async function pfInit(){
  try{if(vkOn()){await vkInit();return}}catch(e){console.warn('[Underworld Escape] VK Bridge error',e)}
+ try{if(pkOn()){await pkInit();return}}catch(e){console.warn('[Underworld Escape] Pikabu SDK error',e);if(PF.kind=='pk'){PF.kind='local';PF.sdk=null}}
  // CrazyGames: SDK v3 — init, затем среда. На их доменах (в т.ч. QA-превью) считаем площадкой CG, даже если среда пришла пустой; 'disabled' — чужой сайт
  try{const C=window.CrazyGames&&window.CrazyGames.SDK;if(C){let env='',err=null;try{await C.init()}catch(e){err=e}try{env=C.environment||''}catch(e){}
   let onCG=false;try{onCG=/(^|\.)crazygames\.[a-z.]+$/i.test(location.hostname)||/\/\/([^/]*\.)?crazygames\.[a-z.]+\//i.test(document.referrer||'')}catch(e){}
@@ -183,7 +199,7 @@ async function pfInit(){
  try{if(window.YaGames){ysdk=await YaGames.init();player=await ysdk.getPlayer();syncTime();PF.kind='ya'}}catch(e){ysdk=null}}
 // язык: ?lang=, затем язык из SDK площадки, затем браузера; русский для ru/be/uk/kk, иначе английский
 function pfLang(){let l='';try{const q=new URLSearchParams(location.search).get('lang');if(q)return q=='ru'?'ru':'en'}catch(e){}
- try{const vq=vkQ();if(PF.kind=='vk'||(vq&&vq.get('vk_app_id'))){l=(vq&&vq.get('vk_language'))||'ru'}else if(PF.kind=='cg'){const si=PF.sdk.user&&PF.sdk.user.systemInfo;l=(si&&si.locale)||''}else if(ysdk)l=ysdk.environment.i18n.lang}catch(e){}
+ try{const vq=vkQ();if(PF.kind=='vk'||(vq&&vq.get('vk_app_id'))){l=(vq&&vq.get('vk_language'))||'ru'}else if(PF.kind=='pk'){l='ru'}else if(PF.kind=='cg'){const si=PF.sdk.user&&PF.sdk.user.systemInfo;l=(si&&si.locale)||''}else if(ysdk)l=ysdk.environment.i18n.lang}catch(e){}
  if(!l)try{l=navigator.language||''}catch(e){}
  return /^(ru|be|uk|kk)/i.test(l)?'ru':'en'}
 function adWait(on){const w=$('adwait');if(w)w.hidden=!on}
@@ -196,17 +212,19 @@ function cgAd(type,onDone,onFail){let started=false;adWait(true);const end=()=>{
  try{PF.sdk.ad.requestAd(type,{adStarted:()=>{started=true;clearTimeout(guard);pause(true)},adFinished:()=>{clearTimeout(guard);end();onDone()},adError:er=>{clearTimeout(guard);end();onFail(er)}})}catch(er){clearTimeout(guard);end();onFail(er)}}
 function rewarded(ok){const f=()=>{qp('a');S.nec++;ok()};
  if(PF.kind=='cg'){if(adsOff())return toast(adOffMsg());cgAd('rewarded',()=>{f();toast(ico('gift')+' '+t('Награда получена!','Reward received!'),true)},adErr);return}
+ if(PF.kind=='pk'){if(adsOff())return toast(adOffMsg());pkAd('rewarded',()=>{f();toast(ico('gift')+' '+t('Награда получена!','Reward received!'),true)},r=>toast(r&&r.rendered?t('Досмотрите видео до конца, чтобы получить награду','Watch the video to the end to get the reward'):t('Сейчас нет рекламы, попробуйте позже','No ad right now, try again later')));return}
  if(PF.kind=='vk'){if(adsOff())return toast(adOffMsg());vkAd('reward',()=>{f();toast(ico('gift')+' '+t('Награда получена!','Reward received!'),true);vkPre()},()=>toast(t('Сейчас нет рекламы, попробуйте позже','No ad right now, try again later')));return}
  if(ysdk){ysdk.adv.showRewardedVideo({callbacks:{onOpen:()=>pause(true),onRewarded:f,onClose:()=>pause(false),onError:()=>pause(false)}})}else f()}
 function interstitial(done){if(PF.kind=='vk'){if(adsOff()||NOW()-S.adT<=240000||Date.now()-PF.t0<180000)return done();S.adT=NOW();vkAd('interstitial',done,done);return} // VK: не в первые 3 минуты (модерация отклоняет рекламу сразу после запуска)
+ if(PF.kind=='pk'){if(adsOff()||NOW()-S.adT<=240000||Date.now()-PF.t0<180000)return done();S.adT=NOW();pkAd('fullscreen',done,done);return} // Пикабу: после победы над боссом, не в первые 3 минуты и не чаще раза в 4 мин (SDK сам не чаще 2 мин)
  if(PF.kind=='cg'){if(adsOff()||NOW()-S.adT<=240000)return done();S.adT=NOW();cgAd('midgame',done,er=>{if(er&&er.code=='adsDisabledBasicLaunch')PF.noAds=true;done()});return}
  if(ysdk&&NOW()-S.adT>240000){S.adT=NOW();ysdk.adv.showFullscreenAdv({callbacks:{onOpen:()=>pause(true),onClose:()=>{pause(false);done()},onError:()=>{pause(false);done()}}})}else done()}
 function happy(){if(PF.kind=='cg')try{PF.sdk.game.happytime()}catch(e){}}
 // копия в localStorage пишется ВСЕГДА: если у площадки облако выключено или сбоит (CrazyGames без «Progress Save» — dataModuleDisabled), прогресс не теряется
 let cgSv='',cgLd='';
-function storeSet(j,f){try{localStorage.setItem('hades',j)}catch(e){}if(PF.kind=='cg')try{PF.sdk.data.setItem('hades',j);cgSv='ok'}catch(e){if(cgSv=='ok'||!cgSv)console.warn('[Underworld Escape] CrazyGames save error',e);cgSv=(e&&(e.code||e.message))||'err'}if(PF.kind=='vk')vkSave(j,f)}
+function storeSet(j,f){try{localStorage.setItem('hades',j)}catch(e){}if(PF.kind=='cg')try{PF.sdk.data.setItem('hades',j);cgSv='ok'}catch(e){if(cgSv=='ok'||!cgSv)console.warn('[Underworld Escape] CrazyGames save error',e);cgSv=(e&&(e.code||e.message))||'err'}if(PF.kind=='vk')vkSave(j,f);if(PF.kind=='pk')pkSave(j,f)}
 function storeGet(){let l=null,c=null;try{l=localStorage.getItem('hades')}catch(e){}
- if(PF.kind=='vk')c=vkCloud;else if(PF.kind=='cg')try{c=PF.sdk.data.getItem('hades');cgLd=c?'cloud':'empty'}catch(e){cgLd='err:'+((e&&(e.code||e.message))||'?');console.warn('[Underworld Escape] CrazyGames load error',e)}
+ if(PF.kind=='vk')c=vkCloud;else if(PF.kind=='pk')try{c=PF.sdk.storage.get('hades')||null;if(c&&typeof c!='string')c=JSON.stringify(c)}catch(e){}else if(PF.kind=='cg')try{c=PF.sdk.data.getItem('hades');cgLd=c?'cloud':'empty'}catch(e){cgLd='err:'+((e&&(e.code||e.message))||'?');console.warn('[Underworld Escape] CrazyGames load error',e)}
  const lt=x=>{try{return JSON.parse(x).last||0}catch(e){return -1}};return !c?l:!l?c:lt(c)>=lt(l)?c:l}
 const snd=()=>{if(!sound)return false;try{if(PF.kind=='cg'&&PF.sdk.game.settings&&PF.sdk.game.settings.muteAudio)return false}catch(e){}return true};
 function submitScore(){if(S.cheat||!ysdk)return;if(NOW()-lbT<20000){lbP=true;return}lbT=NOW();lbP=false;try{if(ysdk.leaderboards&&ysdk.leaderboards.setScore)ysdk.leaderboards.setScore('floors',S.max).catch(()=>{});else if(ysdk.getLeaderboards)ysdk.getLeaderboards().then(l=>l.setLeaderboardScore('floors',S.max)).catch(()=>{})}catch(e){}}
@@ -278,7 +296,7 @@ function devExec(line){if(!devOK())return'консоль отключена';con
 async function init(){sfxPre();devInit();uiInit();$('list').addEventListener('pointerdown',()=>{lpDown=true;lpT=NOW()});['pointerup','pointercancel'].forEach(e=>document.addEventListener(e,()=>{lpDown=false;lpT=NOW()}));document.addEventListener('visibilitychange',()=>{if(document.hidden){audVis(true);save(true);lbFlush(true);if(PF.kind!='cg')gp(false)}else{audVis(false);if(PF.kind!='cg')gp(!paused);offline()}});preDraw();await pfInit();try{document.body.classList.add('pf-'+PF.kind);if(adsOff())document.body.classList.add('noads')}catch(e){}
  await load();loaded=true;setTexts(S.lang||pfLang());S.b.forEach((b,i)=>{if(b[1])b[1]=Math.min(b[1],NOW()+hTime(i)*1e3)}); // стройки по старым долгим таймерам — укоротить
  if(S.max>30&&!S.tut)S.tut=9;achCheck(true);applyCos();skBuild();spawn();tabRender();offline();
- if(ysdk&&ysdk.features&&ysdk.features.LoadingAPI)ysdk.features.LoadingAPI.ready();if(PF.kind=='cg')try{PF.sdk.game.loadingStop()}catch(e){}gp(true);
+ if(ysdk&&ysdk.features&&ysdk.features.LoadingAPI)ysdk.features.LoadingAPI.ready();if(PF.kind=='cg')try{PF.sdk.game.loadingStop()}catch(e){}if(PF.kind=='pk')try{PF.sdk.gameStarted()}catch(e){}gp(true);
  setInterval(save,15000);setInterval(musTick,400);setInterval(audVol,1000);requestAnimationFrame(loop)}
 
 let SL,RN;const NEED=[3,4,5,6,7,8,9];
@@ -402,7 +420,7 @@ function openHelp(){const H=[
  ['icons/fairy',t('Фея','Fairy'),t('Иногда пролетает над ареной — поймайте её, чтобы получить золото, Нектар или ускорение.','Sometimes flies across the arena — catch her for gold, Nectar or a speed boost.'),''],
  ['ui/gift_7',t('Пока вас нет','While you are away'),t('Боги продолжают приносить золото до 8 часов. Заберите его, когда вернётесь.','Gods keep earning gold for up to 8 hours. Collect it when you come back.'),'']];
  modal(`<div class="help"><h3>${ico('help')} ${t('Как играть','How to play')}</h3>${H.map(([im,n,d,tb])=>`<div class="hrow${tb?' go':''}"${tb?` onclick="closeM();navGo('${tb}')"`:''}><span class="it art"><img class="pi" src="img/${im}.webp" alt="" loading="lazy"></span><div><b>${n}</b><small>${d}</small></div>${tb?ico('up'):''}</div>`).join('')}<button onclick="closeM()">${t('Понятно','Got it')}</button></div>`)}
-function openCfg(){modal(`<h3>${ico('gear')} ${t('Настройки','Settings')}</h3><p>${t('Эффекты','Effects')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[0]*100)}" oninput="setVol(0,this.value)"></p><p>${t('Музыка','Music')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[1]*100)}" oninput="setVol(1,this.value)"></p><p>${t('Язык','Language')}<br><button onclick="setLang('ru')">RU</button><button onclick="setLang('en')">EN</button></p>${PF.kind=='vk'?`<p><button onclick="vkShare()">${t('Рассказать друзьям','Tell friends')}</button>${VK_SUPPORT?`<button onclick="window.open(VK_SUPPORT,'_blank')">${t('Поддержка','Support')}</button>`:''}</p><p class="diag">${vkDiag()}</p>`:''}${PF.kind=='cg'?`<p class="diag">CrazyGames · ${(()=>{try{return PF.sdk.environment}catch(e){return'?'}})()} · load ${cgLd||'-'} · save ${cgSv||'-'} · local ${(()=>{try{return localStorage.getItem('hades')?'yes':'no'}catch(e){return'blocked'}})()}</p>`:''}${okB()}`)}
+function openCfg(){modal(`<h3>${ico('gear')} ${t('Настройки','Settings')}</h3><p>${t('Эффекты','Effects')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[0]*100)}" oninput="setVol(0,this.value)"></p><p>${t('Музыка','Music')}<br><input type="range" min="0" max="100" value="${Math.round(S.vol[1]*100)}" oninput="setVol(1,this.value)"></p><p>${t('Язык','Language')}<br><button onclick="setLang('ru')">RU</button><button onclick="setLang('en')">EN</button></p>${PF.kind=='vk'?`<p><button onclick="vkShare()">${t('Рассказать друзьям','Tell friends')}</button>${VK_SUPPORT?`<button onclick="window.open(VK_SUPPORT,'_blank')">${t('Поддержка','Support')}</button>`:''}</p><p class="diag">${vkDiag()}</p>`:''}${PF.kind=='pk'?`<p class="diag">Pikabu · ${(()=>{try{return PF.sdk.player.isAuthorized?'auth':'guest'}catch(e){return'?'}})()} · save ${pkSv||'ok'}</p>`:''}${PF.kind=='cg'?`<p class="diag">CrazyGames · ${(()=>{try{return PF.sdk.environment}catch(e){return'?'}})()} · load ${cgLd||'-'} · save ${cgSv||'-'} · local ${(()=>{try{return localStorage.getItem('hades')?'yes':'no'}catch(e){return'blocked'}})()}</p>`:''}${okB()}`)}
 // Шторка на телефоне: стрелку над списком можно нажать или потянуть вверх — список вкладки раскрывается на весь экран
 // (арена прячется, валюта сверху и меню снизу остаются); вниз — обратно. В начале боя с боссом шторка сама сворачивается.
 function sheet(on){try{const b=document.body;if(on===undefined)on=!b.classList.contains('sheet');b.classList.toggle('sheet',on);const g=$('grip');

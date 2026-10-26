@@ -646,6 +646,39 @@ ok('CG: the game really pauses while a window is open',fs.readFileSync(ROOT+'/ga
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
 ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
 }
+// ---------- Пикабу Игры (mocked PkbSDK) ----------
+{const tick=()=>new Promise(r=>setImmediate(r));const vb=ctx.vkBridge,lc=ctx.location;delete ctx.vkBridge;ctx.location={search:'',hostname:'sacredz58.github.io'};
+const P=ctx.__pk={calls:[],st:{},can:{rewarded:true,fullscreen:true,preloader:true},res:{rewarded:{rendered:true,reward:true},fullscreen:{rendered:true},preloader:{rendered:true}},h:{},auth:false};
+const ad=k=>({isSupported:true,canShow:async()=>{P.calls.push('can:'+k);return P.can[k]},show:async()=>{P.calls.push('show:'+k+':paused='+run('paused'));return P.res[k]}});
+ctx.PkbSDK={init:async()=>{P.calls.push('init');return{gameStarted:()=>P.calls.push('started'),on:(e,f)=>{P.h[e]=f},
+ ads:{rewarded:ad('rewarded'),fullscreen:ad('fullscreen'),preloader:ad('preloader')},player:{get isAuthorized(){return P.auth}},
+ storage:{get:k=>P.st[k]===undefined?null:P.st[k],set:(k,v)=>{P.st[k]=v},flush:async()=>{P.calls.push('flush');return{success:true}}}}}};
+reset();run('PF.kind="local";PF.sdk=null;PF.noAds=false;PF.adblock=false');await run('pfInit()');
+ok('Pikabu: SDK detected and initialised, kind=pk',run('PF.kind')==='pk'&&P.calls[0]==='init');
+ok('Pikabu: preloader ad checked with canShow() and shown during loading (before gameStarted)',P.calls.includes('can:preloader')&&P.calls.some(c=>c.startsWith('show:preloader'))&&!P.calls.includes('started'));
+ok('Pikabu: Russian by default',run('pfLang()')==='ru');
+ok('Pikabu: no real-money Nectar packs and no Yandex leaderboard',run('shopYa()')===false);
+run('loaded=true;S.floor=321;save(true)');await tick();
+ok('Pikabu save goes to sdk.storage, forced save is flushed',typeof P.st.hades==='string'&&JSON.parse(P.st.hades).floor===321&&P.calls.includes('flush'));
+ok('Pikabu save: copy kept in localStorage too',JSON.parse(ls.hades).floor===321);
+ok('Pikabu save fits the 200 KB cloud limit even with a full inventory',(run('S.inv=Array(400).fill(0).map((_,i)=>({s:i%6,r:i%8}));JSON.stringify(S).length'))<200*1024);
+P.calls=[];run('save(true)');await tick();ok('Pikabu: flush() not more often than every 15 s (limit 100 per 5 min)',!P.calls.includes('flush'));
+P.st.hades=JSON.stringify(Object.assign(JSON.parse(P.st.hades),{floor:4444,last:1e15}));run('S=S0()');await run('load()');ok('Pikabu load: newer cloud save wins',run('S.floor')===4444);
+delete P.st.hades;run('S=S0()');await run('load()');ok('Pikabu: empty cloud -> local copy is used',run('S.floor')===321);
+P.h.storageSaveError&&P.h.storageSaveError('RATE_LIMIT');run('openCfg()');ok('Pikabu: save errors are shown in the settings diagnostics line',els.mbox.innerHTML.includes('Pikabu · guest · save RATE_LIMIT'));run('closeM();pkSv=""');
+reset();run('PF.kind="pk";loaded=true');P.calls=[];const nec=run('S.nec');let g=0;ctx.__g=()=>g++;run('rewarded(()=>__g())');await tick();await tick();
+ok('Pikabu rewarded: canShow() first, game paused during the ad, reward after reward:true',g===1&&run('S.nec')===nec+1&&P.calls[0]==='can:rewarded'&&P.calls.includes('show:rewarded:paused=true')&&run('paused')===false&&els.adwait.hidden===true);
+P.res.rewarded={rendered:true,reward:false};run('rewarded(()=>__g())');await tick();await tick();ok('Pikabu rewarded closed early: no reward, explained in a toast',g===1&&els.toast.textContent.includes('Досмотрите'));
+P.can.rewarded=false;P.calls=[];run('rewarded(()=>__g())');await tick();await tick();ok('Pikabu rewarded unavailable: nothing shown, no reward, game not paused',g===1&&!P.calls.some(c=>c.startsWith('show'))&&run('paused')===false);P.can.rewarded=true;P.res.rewarded={rendered:true,reward:true};
+P.calls=[];let d=0;ctx.__d=()=>d++;run('S.adT=0;PF.t0=Date.now()');run('interstitial(()=>__d())');ok('Pikabu fullscreen: never in the first 3 minutes',d===1&&P.calls.length===0);
+run('PF.t0=Date.now()-2e5;S.adT=0');run('interstitial(()=>__d())');await tick();await tick();ok('Pikabu fullscreen: shown after that, game continues',d===2&&P.calls.includes('show:fullscreen:paused=true')&&run('paused')===false);
+P.calls=[];run('interstitial(()=>__d())');ok('Pikabu fullscreen: not more often than every 4 min',d===3&&P.calls.length===0);
+P.calls=[];run('S.adT=0;S.floor=40;S.max=39;spawn();dealt(1e30,false,0,0)');await tick();ok('Pikabu fullscreen after a boss win',P.calls.includes('can:fullscreen'));
+run('PF.adblock=true');P.calls=[];run('rewarded(()=>__g())');ok('Pikabu with ad blocker: no ad calls, game keeps working',P.calls.length===0&&run('adsOff()')===true);run('PF.adblock=false');
+{const g2=fs.readFileSync(ROOT+'/game.js','utf8'),b=fs.readFileSync(ROOT+'/build.sh','utf8');ok('Pikabu: gameStarted() called when the first screen is ready',g2.includes("if(PF.kind=='pk')try{PF.sdk.gameStarted()}catch(e){}gp(true);"));
+ ok('build: Pikabu target with their SDK, published at /pikabu/',b.includes('PK_SDK=\'<script src="https://games.pikabu.ru/sdk/sdk.js"></script>\'')&&b.includes('cp -r dist/pikabu dist/yandex/pikabu'));}
+ctx.PkbSDK={init:()=>Promise.reject(new Error('blocked'))};reset();run('PF.kind="local";PF.sdk=null');await run('pfInit()');ok('Pikabu SDK failure: game falls back to local mode',run('PF.kind')==='local');
+delete ctx.PkbSDK;run('PF.kind="local";PF.sdk=null;PF.noAds=false;PF.adblock=false');ctx.vkBridge=vb;ctx.location=lc;}
 {
 // ---------- effects ----------
 reset();run('S.floor=5;spawn()');run('burst(100,80,9,["#fff"],60)');ok('sparks: particle pool created (48)',run('pts.length')===48&&els.fx.children.length>=48);
