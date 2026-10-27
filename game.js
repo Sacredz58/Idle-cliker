@@ -195,7 +195,7 @@ async function pfInit(){
  try{const C=window.CrazyGames&&window.CrazyGames.SDK;if(C){let env='',err=null;try{await C.init()}catch(e){err=e}try{env=C.environment||''}catch(e){}
   let onCG=false;try{onCG=/(^|\.)crazygames\.[a-z.]+$/i.test(location.hostname)||/\/\/([^/]*\.)?crazygames\.[a-z.]+\//i.test(document.referrer||'')}catch(e){}
   console.info('[Underworld Escape] CrazyGames SDK: environment='+(env||'?')+(err?' init error: '+(err&&err.message||err):'')+' host='+location.hostname);
-  if(env=='crazygames'||env=='local'||(env!='disabled'&&onCG)){PF.kind='cg';PF.sdk=C;if(!CG_ADS)PF.noAds=true;try{C.game.loadingStart()}catch(e){}try{C.game.addSettingsChangeListener(st=>{try{if(st&&st.muteAudio&&AUD&&AUD.state=='running')AUD.suspend()}catch(e){}})}catch(e){}try{PF.adblock=!!(await C.ad.hasAdblock())}catch(e){}return}}}catch(e){console.warn('[Underworld Escape] CrazyGames SDK error',e)}
+  if(env=='crazygames'||env=='local'||(env!='disabled'&&onCG)){PF.kind='cg';PF.sdk=C;if(!CG_ADS)PF.noAds=true;try{C.game.loadingStart()}catch(e){}try{C.game.addSettingsChangeListener(st=>{try{if(st&&st.muteAudio&&AUD&&AUD.state=='running')aq(AUD.suspend())}catch(e){}})}catch(e){}try{PF.adblock=!!(await C.ad.hasAdblock())}catch(e){}return}}}catch(e){console.warn('[Underworld Escape] CrazyGames SDK error',e)}
  try{if(window.YaGames){ysdk=await YaGames.init();player=await ysdk.getPlayer();syncTime();PF.kind='ya'}}catch(e){ysdk=null}}
 // язык: ?lang=, затем язык из SDK площадки, затем браузера; русский для ru/be/uk/kk, иначе английский
 function pfLang(){let l='';try{const q=new URLSearchParams(location.search).get('lang');if(q)return q=='ru'?'ru':'en'}catch(e){}
@@ -705,8 +705,8 @@ function audInit(){if(AUD&&A)return true;try{AUD=AUD||new(window.AudioContext||w
 function audVol(){if(!A)return;const on=snd()&&!paused,t=A.c.currentTime||0;
  try{A.master.gain.setTargetAtTime(on?1:0,t,.06);A.sfx.gain.setTargetAtTime(S.vol[0]*.9,t,.05);A.mus.gain.setTargetAtTime(S.vol[1]*.8,t,.3)}catch(e){A.master.gain.value=on?1:0;A.sfx.gain.value=S.vol[0]*.9;A.mus.gain.value=S.vol[1]*.8}}
 // первое касание/клавиша разблокирует звук (требование браузеров и iOS)
-function audUnlock(){if(!audInit())return;try{if(AUD.state!='running'&&!document.hidden&&!paused)AUD.resume()}catch(e){}if(!ELM){sfxLoad();trkLoad()}}
-function audVis(hidden){if(!AUD)return;try{hidden?AUD.suspend():AUD.resume()}catch(e){}}
+function audUnlock(){if(!audInit())return;try{if(AUD.state!='running'&&!document.hidden&&!paused)aq(AUD.resume())}catch(e){}if(!ELM){sfxLoad();trkLoad();try{if(snd()&&S.vol[1]>0&&!paused)trkPlay()}catch(e){}}}
+function audVis(hidden){if(!AUD)return;try{hidden?aq(AUD.suspend()):aq(AUD.resume())}catch(e){}}
 // тон с огибающей: f — частота, to — к какой частоте скользить, d — длительность, v — громкость, at — сдвиг старта, w — доля в реверберацию
 function tone(bus,f,d,v,o={}){const c=A.c,t=(c.currentTime||0)+(o.at||0),os=c.createOscillator(),g=c.createGain();os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.to)os.frequency.exponentialRampToValueAtTime(o.to,t+d);
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+(o.a||.005));g.gain.exponentialRampToValueAtTime(.0001,t+d);
@@ -723,8 +723,8 @@ const SFXF={click:'click',crit:'crit',kill:'kill',buy:'buy',skill:'skill',bossIn
 // иначе первые секунды (весь 1-й этаж) звучали старые синтезированные звуки. Пока файл расшифровывается — тишина, не старый звук.
 const SFX_AB={},SBF={};let MUS_AB=null;
 function sfxPre(){try{if(typeof fetch!='function'||location.protocol=='file:')return;const g=u=>{const p=fetch(u).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()});p.catch(()=>{});return p};
- Object.entries(SFXF).forEach(([k,f])=>{SFX_AB[k]=g('sfx/'+f+'.mp3')});MUS_AB=g(MUS_FILE)}catch(e){}}
-function sfxLoad(){if(sbLd||!A||typeof fetch!='function')return;sbLd=true;Object.entries(SFXF).forEach(([k,f])=>(SFX_AB[k]||fetch('sfx/'+f+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})).then(ab=>new Promise((ok,no)=>AUD.decodeAudioData(ab,ok,no))).then(b=>{const d=b.getChannelData(0);let i=0;while(i<d.length&&Math.abs(d[i])<1e-3&&i<b.sampleRate*.1)i++;SB[k]={b,off:i/b.sampleRate}}).catch(()=>{SBF[k]=1}))}
+ Object.entries(SFXF).forEach(([k,f])=>{SFX_AB[k]=g('sfx/'+f+'.mp3')})}catch(e){}} // музыку заранее не качаем: она идёт потоком после первого касания
+function sfxLoad(){if(sbLd||!A||typeof fetch!='function')return;sbLd=true;Object.entries(SFXF).forEach(([k,f])=>(SFX_AB[k]||fetch('sfx/'+f+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})).then(ab=>new Promise((ok,no)=>{const r=AUD.decodeAudioData(ab,ok,no);if(r&&r.catch)r.catch(()=>{})})).then(b=>{const d=b.getChannelData(0);let i=0;while(i<d.length&&Math.abs(d[i])<1e-3&&i<b.sampleRate*.1)i++;SB[k]={b,off:i/b.sampleRate}}).catch(()=>{SBF[k]=1}))}
 function sfxFile(k,p){const s=SB[k];if(!s)return false;const c=A.c,src=c.createBufferSource();src.buffer=s.b;if(SFXV[k])src.playbackRate.value=p;src.connect(A.sfx);src.start(c.currentTime||0,s.off);return true}
 const SFXGAP={click:60,crit:80,kill:110,buy:60,skill:150,reward:250,boss:300,bossIn:500,lose:500,fairy:200},sfxT={};
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -767,10 +767,18 @@ const ELM=(()=>{try{return location.protocol=='file:'&&typeof Audio=='function'}
 function elInit(){if(!ELM||EL.mus)return;try{EL.mus=new Audio(MUS_FILE);EL.mus.loop=true;Object.entries(SFXF).forEach(([k,f])=>{const a=new Audio('sfx/'+f+'.mp3');a.preload='auto';EL.sfx[k]=a})}catch(e){}}
 function elVol(){if(!EL.mus)return;const on=snd()&&!paused&&!document.hidden;try{EL.mus.volume=on?Math.min(1,S.vol[1]*.8*MUS_GAIN):0;if(on&&S.vol[1]>0&&EL.mus.paused)EL.mus.play().catch(()=>{});if((!on||S.vol[1]<=0)&&!EL.mus.paused)EL.mus.pause()}catch(e){}}
 function elSfx(k,p){const b=EL.sfx[k];if(!b)return false;try{const a=b.cloneNode();a.volume=Math.min(1,S.vol[0]*.9);if(SFXV[k]){a.preservesPitch=false;a.playbackRate=p}a.play().catch(()=>{});return true}catch(e){return false}}
-const MUS_FILE='music/theme.mp3',MUS_LEN=164.7969,MUS_GAIN=.75,trk={buf:null,src:null,g:null,ld:false};
-function trkLoad(){if(trk.ld||trk.buf||!A||typeof fetch!='function')return;trk.ld=true;
- const pre=MUS_AB;MUS_AB=null;(pre||fetch(MUS_FILE).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})).then(ab=>new Promise((ok,no)=>AUD.decodeAudioData(ab,ok,no))).then(b=>{trk.buf=b}).catch(()=>{setTimeout(()=>{trk.ld=false},6e4)})}
-function trkPlay(){if(!trk.buf||trk.src)return;const c=AUD,b=trk.buf,d=b.getChannelData(0);let i=0;while(i<d.length&&Math.abs(d[i])<1e-4&&i<c.sampleRate)i++;
+const MUS_FILE='music/theme.mp3',MUS_LEN=164.7969,MUS_GAIN=.75,trk={buf:null,src:null,g:null,ld:false,el:null};
+const aq=p=>{try{if(p&&p.catch)p.catch(()=>{})}catch(e){}return p}; // промис без обработчика отказа считается ошибкой страницы (CrazyGames: crash rate)
+// Музыка идёт потоком: <audio> → Web Audio (createMediaElementSource) → шина музыки. Раньше трек 2:45 целиком распаковывался
+// в память (≈60 МБ PCM) — на слабых телефонах и iPhone это подвешивало или роняло вкладку. Если поток недоступен — старый путь (буфер).
+function trkLoad(){if(trk.ld||trk.buf||trk.el||!A)return;trk.ld=true;
+ try{if(typeof Audio=='function'&&AUD.createMediaElementSource){const el=new Audio();el.preload='auto';el.loop=true;el.src=MUS_FILE;
+  const s=AUD.createMediaElementSource(el),g=AUD.createGain();g.gain.value=.0001;s.connect(g);g.connect(A.mus);trk.el=el;trk.g=g;return}}catch(e){trk.el=null}
+ if(typeof fetch!='function')return;
+ const pre=MUS_AB;MUS_AB=null;(pre||fetch(MUS_FILE).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})).then(ab=>new Promise((ok,no)=>{const r=AUD.decodeAudioData(ab,ok,no);if(r&&r.catch)r.catch(()=>{})})).then(b=>{trk.buf=b}).catch(()=>{setTimeout(()=>{trk.ld=false},6e4)})}
+function trkPlay(){const el=trk.el;if(el){if(!el.paused||trk.pp)return;trk.pp=true;
+  aq(Promise.resolve(el.play()).then(()=>{trk.pp=false;const t=AUD.currentTime||0;try{trk.g.gain.cancelScheduledValues(t);trk.g.gain.setValueAtTime(Math.max(.0001,trk.g.gain.value),t);trk.g.gain.exponentialRampToValueAtTime(MUS_GAIN,t+2.5)}catch(e){trk.g.gain.value=MUS_GAIN}},()=>{trk.pp=false}));return}
+ if(!trk.buf||trk.src)return;const c=AUD,b=trk.buf,d=b.getChannelData(0);let i=0;while(i<d.length&&Math.abs(d[i])<1e-4&&i<c.sampleRate)i++;
  const off=i/b.sampleRate,src=c.createBufferSource(),g=c.createGain(),t=c.currentTime||0;src.buffer=b;src.loop=true;src.loopStart=off;src.loopEnd=Math.min(b.duration,off+MUS_LEN);
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(MUS_GAIN,t+2.5);src.connect(g);g.connect(A.mus);src.start(t,off);trk.src=src;trk.g=g}
 // планировщик: держит запас ~1,5 с вперёд

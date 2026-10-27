@@ -641,7 +641,7 @@ ok('wide layout: after a boss loss «Fight the boss» gets its own full row, vid
 {const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('reused buy button forgets old content (no soul icon on weapon prices after Skills -> Weapons)',g.includes("if(['data-k','data-i','data-ab'].some(n=>a.getAttribute(n)!==b.getAttribute(n))){delete a._k;delete a._h}")&&g.includes("C[1].firstElementChild.className=='coin'"))}
 {const b=fs.readFileSync(ROOT+'/build.sh','utf8');ok('build adds a version tag to game.js/style.css (no stale cache after an update)',b.includes('game.js?v=$h')&&b.includes('style.css?v=$h'))}
 ok('tutorial highlight inside the list stays under the sticky section header',css5.includes('#list .hl{z-index:1}'))
-{const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('sound files are prefetched at start and decoded on the first touch; no old synth sound while loading',g.includes('async function init(){sfxPre();')&&g.includes('if(!ELM){sfxLoad();trkLoad()}')&&g.includes('if(!ELM&&sbLd&&SFXF[k]&&!SBF[k])return;'))}
+{const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('sound files are prefetched at start and decoded on the first touch; no old synth sound while loading',g.includes('async function init(){sfxPre();')&&g.includes('if(!ELM){sfxLoad();trkLoad();')&&g.includes('if(!ELM&&sbLd&&SFXF[k]&&!SBF[k])return;'))}
 ok('CG: the game really pauses while a window is open',fs.readFileSync(ROOT+'/game.js','utf8').includes("function loop(t){if(paused||(PF.kind=='cg'&&!$('modal').hidden))"));
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
 ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
@@ -756,6 +756,13 @@ run('S.floor=10;spawn();mus.bar=0');const c7=cnt();run('musBar(0)');const boss=c
 run('trk.src={};S.farm=false;S.floor=5;spawn();mus.bar=0');{const c0=cnt();run('musBar(0)');ok('music: with the theme track playing, no synth pad/melody',cnt()===c0);run('S.floor=10;spawn();mus.bar=0');const c1=cnt();run('musBar(0)');ok('music: boss heartbeat still plays over the theme',cnt()-c1===8);run('trk.src=null;S.floor=5;spawn()');}
 {const fsx=require('fs');ok('music: theme file exists and is packed into builds',fsx.existsSync(ROOT+'/music/theme.mp3')&&fsx.statSync(ROOT+'/music/theme.mp3').size<3e6&&fsx.readFileSync(ROOT+'/build.sh','utf8').includes('img fonts music sfx'));}
 {pt2+=5000;const o0=ctx.__osc||0,s0=ctx.__src||0;run('SB.click={b:{getChannelData:()=>[],sampleRate:44100},off:0};sfx("click")');ok('effects: a loaded file plays instead of the synth',(ctx.__src||0)-s0===1&&(ctx.__osc||0)===o0);run('delete SB.click');}
+{const g=fs.readFileSync(ROOT+'/game.js','utf8');ok('music is NOT downloaded at start (2 MB would compete with images on phones)',!g.includes('MUS_AB=g(MUS_FILE)'));
+ ok('no unhandled promise rejections from audio (decodeAudioData, resume/suspend)',!/[^q]\(AUD\.(resume|suspend)\(\)\)/.test(g.replace(/aq\(AUD/g,'q(AUD'))&&!g.includes('new Promise((ok,no)=>AUD.decodeAudioData(ab,ok,no))'));}
+{let plays=0;ctx.Audio=function(){this.paused=true;this.play=()=>{plays++;this.paused=false;return Promise.resolve()};this.pause=()=>{this.paused=true}};
+ run('AUD.createMediaElementSource=el=>({connect(){}})');run('trk.buf=null;trk.src=null;trk.el=null;trk.ld=false;trkLoad()');
+ ok('music streams through <audio> + Web Audio (no 60 MB decode into memory)',run('!!trk.el')&&run('trk.el.src')==='music/theme.mp3'&&run('trk.el.loop')===true&&run('trk.buf')===null);
+ run('trkPlay();trkPlay()');await new Promise(r=>setImmediate(r));ok('music: play() once, then fades in through the music bus',plays===1&&run('trk.el.paused')===false);
+ run('trk.el=null;trk.ld=false;trk.g=null');delete ctx.Audio;}
 {const fsx=require('fs');ok('effects: every sound file exists',run('Object.values(SFXF)').every(f=>fsx.existsSync(ROOT+'/sfx/'+f+'.mp3')));}
 ok('default volume 25% effects / 25% music',run('S0().vol.join()')==='0.25,0.25');
 {const sv=run('JSON.stringify(S)');run('S=Object.assign(S0(),{vol:[.7,.3]});delete S.vv;if(S.tot<S.souls)S.tot=S.souls;if(!S.vv){if(S.vol&&S.vol[0]==.7&&S.vol[1]==.3)S.vol=[.25,.25];S.vv=1}');ok('old default volume 70/30 migrates to 25/25 once',run('S.vol.join()')==='0.25,0.25');
