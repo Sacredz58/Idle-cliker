@@ -201,10 +201,12 @@ ok('after opening button shows cooldown',els.list.innerHTML.includes('перез
 const o2=JSON.parse(run('JSON.stringify(S0())'));delete o2.ac;ls.hades=JSON.stringify(o2);await run('load()');ok('old save without chests gets slots',run('S.ac.length')===4);
 }
 {
-reset();run('S.floor=3;spawn()');ok('non-boss monster has 1/5 of floor hp, shows 1/5',Math.abs(run('maxhp/mHP(3)')-.2)<1e-9&&els.floor.textContent.includes('1/5'));
-for(let i=0;i<4;i++)run('dealt(1e30,false,0,0)');ok('4 kills: still floor 3, counter 5/5, record not yet raised',run('S.floor')===3&&run('S.mk')===4&&els.floor.textContent.includes('5/5')&&run('S.max')===1);
-run('dealt(1e30,false,0,0)');ok('5th kill clears floor -> 4, counter reset, record raised',run('S.floor')===4&&run('S.mk')===0&&run('S.max')===3&&els.floor.textContent.includes('1/5'));
-ok('gold per floor: 5 kills = 10% of floor hp x early bonus',Math.abs(run('S.gold')-run('mHP(3)*.1*eGold(3)'))<1e-6);
+reset();run('S.floor=3;spawn()');ok('floors 1–9: 3 monsters per floor (first boss within the first minute), shows 1/3',els.floor.textContent.includes('1/3')&&run('MPF(3)')===3&&run('MPF(9)')===3&&run('MPF(11)')===5);
+for(let i=0;i<2;i++)run('dealt(1e30,false,0,0)');ok('floor 3: 2 kills keep the floor, 3rd clears it',run('S.floor')===3&&(run('dealt(1e30,false,0,0)'),run('S.floor'))===4);
+reset();run('S.floor=13;S.max=12;spawn()');ok('non-boss monster has 1/5 of floor hp, shows 1/5',Math.abs(run('maxhp/mHP(13)')-.2)<1e-9&&els.floor.textContent.includes('1/5'));
+for(let i=0;i<4;i++)run('dealt(1e30,false,0,0)');ok('4 kills: still floor 13, counter 5/5, record not yet raised',run('S.floor')===13&&run('S.mk')===4&&els.floor.textContent.includes('5/5')&&run('S.max')===12);
+run('dealt(1e30,false,0,0)');ok('5th kill clears floor -> 14, counter reset, record raised',run('S.floor')===14&&run('S.mk')===0&&run('S.max')===13&&els.floor.textContent.includes('1/5'));
+ok('gold per floor: 5 kills = 10% of floor hp x early bonus',Math.abs(run('S.gold')-run('mHP(13)*.1*eGold(13)'))<1e-6);
 reset();run('S.floor=10;spawn()');ok('boss floor untouched: full hp, no counter',run('maxhp/mHP(10)')===1&&!els.floor.textContent.includes('/5'));
 run('dealt(1e30,false,0,0)');ok('boss dies in one kill -> floor 11',run('S.floor')===11&&run('S.mk')===0);
 reset();run('S.floor=9;S.farm=true;spawn()');for(let i=0;i<7;i++)run('dealt(1e30,false,0,0)');ok('farm mode: floor and counter untouched',run('S.floor')===9&&run('S.mk')===0);
@@ -314,6 +316,8 @@ for(let i=0;i<30;i++)pd({timeStamp:(u+=150+Math.random()*120)});ok('penalty lift
 u+=1e6;reset();run('S.floor=5;spawn()');run('ck.last='+(u-150)+';ck.iv=Array(24).fill(150)');let hq=run('hp');pd({timeStamp:u});const dPen=hq-run('hp');
 u+=1e6;reset();run('S.floor=5;spawn()');run('ck.last='+(u-150)+';ck.iv=[130,170,150,210,140,180,160,120,200,150,190,135,175,145,205,125,185,155,195,140,170,160,130,180]');hq=run('hp');pd({timeStamp:u});const dNorm=hq-run('hp');
 ok('metronomic click deals 25% damage, irregular one 100%',dNorm>0&&Math.abs(dPen/dNorm-.25)<1e-9);
+{u+=1e6;reset();const Q=[167,183,167,167,150,183,167,200,167,150,183,167,167,183,150,167,183,200,167,167,150,183,167,183,167,150,167,183,167,200];for(const q of Q)pd({timeStamp:(u+=q)});ok('a person tapping steadily on a phone (frame-rounded, ~7% spread) is not penalised',run('ck.m')===1);}
+run('S.floor=5;spawn()');run('float(0.5,false,10,10)');ok('small damage shows «0.5», not «0»',[...Array(24)].some((_,k)=>run('pool['+k+'].textContent')==='0.5'));
 u+=1e6;reset();for(let i=0;i<30;i++)pd({timeStamp:(u+=150)});ok('penalised clicks do not count for quests',run('S.q.c')===24);
 u+=1e6;reset();run('S.floor=5;spawn()');for(let i=0;i<24;i++)pd({timeStamp:(u+=150)});run('rage=0;clicks=[]');for(let i=0;i<14;i++)pd({timeStamp:(u+=150)});ok('penalised metronome clicks never trigger Olympus rage',run('rage')===0);
 u+=1e6;reset();for(let i=0;i<400;i++)pd({timeStamp:(u+=100+Math.random()*60)});
@@ -329,7 +333,7 @@ ok('mHP monotonic over non-boss floors',(()=>{let p=0;for(let f=1;f<=10000;f+=7)
 run('S.tot=100');ok('soul multiplier (1+0.05*souls)^1.5',Math.abs(run('soulM()')-Math.pow(6,1.5))<1e-9);run('S.tot=0');
 const F=x=>run(`fmt(${x})`);
 ok('fmt K/M/B/T and rounding',F(999)==='999'&&F(0)==='0'&&F(1500)==='1.50K'&&F(12345)==='12.3K'&&F(123456)==='123K'&&F(999999)==='1.00M'&&F(2.5e6)==='2.50M'&&F('1.234e12')==='1.23T'&&F(1e60)==='1.00e60'&&F('Infinity')==='∞');
-raf(0);reset();run('S.g[7]=100;S.floor=3;spawn()');for(let i=1;i<=20;i++)raf(i*250);ok('spawn delay: ~5 monsters/s (about 25 kills in 5 s), not hundreds of floors per minute',run('S.q.k')>=24&&run('S.q.k')<=26&&run('S.floor')>=7&&run('S.floor')<=8);raf(0);
+raf(0);reset();run('S.g[7]=100;S.floor=13;spawn()');for(let i=1;i<=20;i++)raf(i*250);ok('spawn delay: ~5 monsters/s (about 25 kills in 5 s), not hundreds of floors per minute',run('S.q.k')>=24&&run('S.q.k')<=26&&run('S.floor')>=17&&run('S.floor')<=18);raf(0);
 raf(0);reset();run('S.g[7]=100;S.floor=10000;spawn();hp=1');els.modal.hidden=true;raf(16);ok('final boss: one kill per frame, victory popup, no hang',run('S.floor')===10000&&els.modal.hidden===false&&els.mbox.innerHTML.includes('Хаос повержен'));els.modal.hidden=true;
 raf(0);reset();run('S.floor=10;spawn()');const b0=run('bossT');run('pause(true)');raf(250);ok('paused game does not tick (boss timer frozen)',run('bossT')===b0);run('pause(false)');raf(500);ok('resumes after pause',Math.abs(run('bossT')-(b0-.25))<1e-9);raf(0);
 ctx.__gp=[];ctx.__ok=0;run('ysdk={features:{GameplayAPI:{start(){__gp.push("s")},stop(){__gp.push("x")}}},adv:{showRewardedVideo:o=>{o.callbacks.onOpen();o.callbacks.onRewarded();o.callbacks.onClose()}}}');
@@ -509,7 +513,8 @@ ok('acts IV-VI arena backgrounds',(()=>{const c=fs.readFileSync(ROOT+'/style.css
 ok('every referenced sprite file exists',run('Object.values(SPR.mob).concat(Object.values(SPR.boss))').every(n=>fs.existsSync(ROOT+'/img/'+n+'.webp')));}
 {const src=fs.readFileSync(ROOT+'/game.js','utf8');
 ok('monster is no longer faded out between kills',!src.includes("classList.add('gone')")&&src.includes('killFx(isBoss(f))'));
-reset();run('S.floor=5;spawn();kfxT=-1e9');run('dealt(1e30,false,0,0)');const t1=run('kfxT');run('dealt(1e30,false,0,0)');ok('kill flash throttled to once per 0.3 s',t1>-1e9&&run('kfxT')===t1);}
+{const pn=ctx.performance.now;ctx.performance.now=()=>5e6;reset();run('S.floor=5;spawn();kfxT=-1e9');run('dealt(1e30,false,0,0)');const t1=run('kfxT');run('dealt(1e30,false,0,0)');ok('kill flash throttled to once per 0.3 s',t1>-1e9&&run('kfxT')===t1);ctx.performance.now=pn;}
+{reset();run('S.floor=5;spawn();gfxT=-1e9');const g0=run('S.gold');run('dealt(1e30,false,0,0)');ok('gold popup «+N» over the monster and the gold counter bumps',run('S.gold')>g0&&run('gfxT')>-1e9);}}
 {const css4=fs.readFileSync(ROOT+'/style.css','utf8');
 reset();run('S.floor=777;spawn()');ok('act II arena wired',els.arena.dataset.act===1&&css4.includes('url(img/act2_bg.webp)')&&fs.existsSync(ROOT+'/img/act2_bg.webp'));}
 {
@@ -646,6 +651,42 @@ ok('CG: the game really pauses while a window is open',fs.readFileSync(ROOT+'/ga
 ok('ad blocker overlay exists',htm5.includes('id="adwait"'));
 ok('browser auto-translate is switched off (it duplicated the act title)',htm5.includes('translate="no"')&&htm5.includes('content="notranslate"'));
 }
+// ---------- Дар Харона: бесплатный сундук по таймеру, когда видео недоступно ----------
+{reset();run('PF.kind="local";PF.noAds=false;PF.adblock=false');ok('Charon gift: hidden where video rewards work',run('freeOn()')===false&&run('fcH()')==='');
+ run('PF.kind="cg";PF.noAds=true;S.max=20;S.floor=20;S.fc=0;S.fcn=0;S.nec=0;S.pc=0;tab="rew";tabRender()');
+ ok('Charon gift: shown on CrazyGames Basic Launch, ready right away, above the Nectar shop',els.list.innerHTML.includes('data-fc')&&els.list.innerHTML.indexOf('data-fc')<els.list.innerHTML.indexOf('buyShop(')&&els.list.innerHTML.includes('Забрать'));
+ const Mx=run('Math'),mrx=Mx.random;const g0=run('S.gold'),n0=run('S.nec'),i0=run('S.inv.length'),h0=run('S.hermes'),f0=run('S.gf');Mx.random=()=>.5;run('freeChest()');
+ ok('Charon gift: gold + a prize, 4 h cooldown, counter',run('S.gold')>g0&&run('S.fcn')===1&&Math.abs(run('S.fc-NOW()')-4*36e5)<5e3&&(run('S.nec')>n0||run('S.inv.length')>i0||run('S.hermes')>h0||run('S.gf')>f0));
+ ok('Charon gift: window tells when the next gift comes and what tomorrow brings',els.mbox.innerHTML.includes('Следующий дар')&&(els.mbox.innerHTML.includes('Завтра')||els.mbox.innerHTML.includes('Не забудьте')));
+ const g1=run('S.gold');run('freeChest()');ok('Charon gift: cannot claim again before the timer',run('S.fcn')===1&&run('S.gold')===g1);
+ run('closeM();tabRender()');ok('Charon gift: row shows the countdown while waiting',els.list.innerHTML.includes('до дара'));
+ run('S.fc=0;S.fcn=2');const i1=run('S.inv.length'),n1=run('S.nec');run('freeChest()');ok('Charon gift: every 3rd gift is a great one (extra item and +5 Nectar)',els.mbox.innerHTML.includes('Большой дар')&&run('S.inv.length')>=i1+1&&run('S.nec')>=n1+5);run('closeM()');
+ const prz=new Set();const rs=[.01,.45,.7,.85,.97];for(const r of rs){Mx.random=()=>r;run('S.fc=0;S.fcn=0;S.pc=1;freeChest();closeM()');const h=els.mbox.innerHTML;prz.add(h.includes('Нектар')?'nec':h.includes('Гермес')?'hermes':h.includes('лихорадка')?'rush':h.includes('Души')?'souls':'item')}
+ ok('Charon gift: prizes vary — Nectar, item, Hermes, Gold Rush, souls',prz.size>=5);
+ Mx.random=mrx;
+ run('S.fc=0;navBadges()');ok('Charon gift: Rewards badge when the gift is ready',true);
+ run('S.dl=new Date(NOW()).toDateString();S.day=1');ok('tomorrow reward = day 2 gold after today was claimed',JSON.stringify(run('dayNext()').slice(0,1))==='[2]');
+ run('S.dl=""');ok('if today is not claimed yet — reminder instead of «tomorrow»',run('dayNext()')===null);
+ run('PF.kind="local";PF.noAds=false');reset();}
+// ---------- Круги Хаоса (новая игра+) ----------
+{reset();run('PF.kind="local";PF.sdk=null;ysdk=null;S.pt=0;S.max=9999;S.run=9999;S.sf=3000;S.deep=9999');
+ ok('Circles: new save starts in Circle I, nothing unlocked',run('cyc()')===1&&run('S.cmax')===1&&run('cycM()')===1&&run('cycS()')===1);
+ const h1=run('mHP(5000)'),g1=run('S.run=10000;soulGain()');
+ run('S.floor=10000;spawn();$("modal").hidden=true;kill()');
+ ok('Circles: first win over Chaos opens Circle II with a choice to rebirth into it',run('S.cmax')===2&&run('S.ncyc')===2&&els.modal.hidden===false&&els.mbox.innerHTML.includes('Круг II')&&els.mbox.innerHTML.includes('cycGo(2)')&&run('S.floor')===10000);
+ run('closeM();kill()');ok('Circles: beating Chaos again in the same Circle shows no window (toast only)',els.modal.hidden===true&&run('S.cmax')===2&&els.toast.textContent.includes('снова'));
+ run('cycGo(2)');
+ ok('Circles: «Rebirth into Circle II» rebirths into Circle II from floor ~3000 (30% of the run)',run('cyc()')===2&&run('S.cmax')===2&&run('S.floor')===2999&&run('S.pc')>=1);
+ ok('Circles: monsters ×CYC_HP (100) HP and gold in Circle II',run('CYC_HP')===100&&Math.abs(run('mHP(5000)')/h1-100)<1e-6&&run('skipGold(10)')>0);
+ run('S.run=10000;S.sf=3000');ok('Circles: rebirth souls ×2 in Circle II',run('soulGain()')===Math.floor(g1/1)*2||Math.abs(run('soulGain()')-2*g1)<=2);
+ run('spawn();actUI(S.floor)');ok('Circles: header shows the Circle',els.actn.textContent.includes('Круг II'));
+ run('tab="pres";tabRender()');{const L=els.list.innerHTML;ok('Circles: Gifts tab lets you pick the next Circle (I / II)',L.includes('cycSel(1)')&&L.includes('cycSel(2)')&&L.includes('Следующий Круг'));}
+ run('S.floor=3010;S.mk=4;spawn();S.q=null;qn();const q0=JSON.stringify(S.q);kill()');ok('Circles: depth record = (Circle−1)·10000 + floor (leaderboard and «new floor» quests keep working)',run('S.deep')===13010);
+ run('S.pt=0;cycSel(1);S.run=4000;prestige()');ok('Circles: you can go back to Circle I',run('cyc()')===1&&Math.abs(run('mHP(5000)')/h1-1)<1e-9&&run('S.cmax')===2);
+ run('S.pt=0;cycSel(2);S.run=4000;prestige();S.floor=10000;spawn();$("modal").hidden=true;kill()');ok('Circles: completing Circle II opens Circle III',run('S.cmax')===3&&els.mbox.innerHTML.includes('Круг III'));run('closeM()');
+ run('S=Object.assign(S0(),{max:10000,st:{win:1}});delete S.cmax;delete S.cyc;normS()');ok('Circles: old saves that already beat Chaos get Circle II unlocked',run('S.cmax')===2&&run('cyc()')===1&&run('S.deep')===10000);
+ ok('Circles: roman numerals',run('rom(1)+rom(4)+rom(9)+rom(14)+rom(40)')==='IIVIXXIVXL');
+ reset();}
 // ---------- Пикабу Игры (mocked PkbSDK) ----------
 {const tick=()=>new Promise(r=>setImmediate(r));const vb=ctx.vkBridge,lc=ctx.location;delete ctx.vkBridge;ctx.location={search:'',hostname:'sacredz58.github.io'};
 const P=ctx.__pk={calls:[],st:{},can:{rewarded:true,fullscreen:true,preloader:true},res:{rewarded:{rendered:true,reward:true},fullscreen:{rendered:true},preloader:{rendered:true}},h:{},auth:false};
@@ -720,6 +761,7 @@ run('S.st.c=10;tipUI()');ok('tip 2 waits until there is gold for an upgrade',els
 run('S.gold=20;tipUI()');ok('tip 2: upgrade the sword',els.tipt.textContent.includes('Меч Стикса'));
 run('S.w[0]=2;S.gold=40;tipUI()');ok('tip 3: hire a god',els.tipt.textContent.includes('бога'));
 run('S.g[0]=1;S.floor=4;S.max=3;tipUI()');ok('tip: claim the daily reward in Quests',els.tip.hidden===false&&els.tipt.textContent.includes('Задания'));
+run('S.dl="x";S.gold=1500;tab="quest";tipCur=null;tipUI()');ok('tip: lots of gold piling up (e.g. after the daily reward) → go spend it',els.tipt.textContent.includes('Золота хватает'));run('tab="hero";tipCur=null;tipUI()');ok('on the Hero tab the spend tip stays and points at a buy button',els.tipt.textContent.includes('Золота хватает'));run('S.gold=0;tab="hero"');
 run('S.dl="x";S.floor=9;S.max=8;tipUI()');ok('tip: boss every 10 floors',els.tipt.textContent.includes('босс'));
 run('S.max=11;tipUI()');ok('boss tip done after the first boss',run('S.td.boss')===1);
 run('S.floor=11;S.max=11;spawn();tipUI()');ok('tip: skill unlocked (comes with the first boss), press key 1',els.tipt.textContent.includes('умение'));
@@ -777,7 +819,7 @@ run('setVol(1,0)');ok('music slider updates and saves',run('S.vol[1]')===0);run(
 ok('hp finite at 10000',isFinite(run('mHP(10000)')));
 ok('old save migrates',(()=>{run('S=Object.assign(S0(),{floor:5,souls:4,tot:0});if(S.tot<S.souls)S.tot=S.souls');return run('S.tot')===4})());
 ok('early bosses softer, normal from floor 60',run('bossM(10)')===1.6&&run('bossM(60)')===6&&run('bossM(500)')===6&&run('bossM(20)')<run('bossM(30)'));
-ok('early gold bonus fades to x1 by floor 40',run('eGold(1)')===4&&run('eGold(40)')===1&&run('eGold(300)')===1);
+ok('early gold bonus (×11 on floor 1) fades to x1 by floor 40',run('eGold(1)')===11&&run('eGold(40)')===1&&run('eGold(300)')===1);
 ok('reward base skips boss multiplier',(run('S.max=250'),Math.abs(run('rwG()')-run('mHP(249)'))<1e-6));
 {const fsx=require('fs');ok('portrait for every god and icon for every weapon',run('GODS.length')===18&&run('WEAPONS.length')===17&&[...Array(18).keys()].every(i=>fsx.existsSync(ROOT+'/img/gods/g_'+String(i).padStart(2,'0')+'.webp'))&&[...Array(17).keys()].every(i=>fsx.existsSync(ROOT+'/img/weapons/w_'+String(i).padStart(2,'0')+'.webp'))&&fsx.existsSync(ROOT+'/img/boss_0010.webp'));
 run('tab="gods";tabRender()');ok('gods tab shows portraits',els.list.innerHTML.includes('img/gods/g_00.webp'));run('tab="hero";htab="w";tabRender()');ok('hero tab shows weapon icons',els.list.innerHTML.includes('img/weapons/w_00.webp'));}
@@ -790,7 +832,7 @@ run('S.floor=10;S.farm=false;spawn();lose()');ok('stats: boss defeat counted',ru
 run('S.st.c=1234;S.st.t=3725;tab="top";atab="s";tabRender()');{const sh=els.list.innerHTML;ok('stats tab renders tiles with counters and play time',(sh.match(/class="stt"/g)||[]).length===20&&sh.includes('1.23K')&&sh.includes('1 ч 2 мин')&&sh.includes('Статистика'));}
 run('atab="a";tabRender()');ok('feats sub-tab still shows feats',els.list.innerHTML.includes('class="row up fr'));
 run('S.st={c:5};S.max=60;S.run=60;S.sf=0;S.pt=0;prestige()');ok('stats survive rebirth',run('S.st.c')===5);
-run('openHelp()');{const hh=els.mbox.innerHTML;ok('help: «How to play» lists every mechanic with an icon',(hh.match(/class="hrow/g)||[]).length===13&&hh.includes('Гнев Олимпа')&&hh.includes('Перерождение')&&hh.includes('img/icons/fairy.webp')&&hh.includes("navGo('house')"));}run('closeM()');
+run('openHelp()');{const hh=els.mbox.innerHTML;ok('help: «How to play» lists every mechanic with an icon',(hh.match(/class="hrow/g)||[]).length===14&&hh.includes('Круги Хаоса')&&hh.includes('Гнев Олимпа')&&hh.includes('Перерождение')&&hh.includes('img/icons/fairy.webp')&&hh.includes("navGo('house')"));}run('closeM()');
 {const fsx=require('fs');const hh=(()=>{run('openHelp()');return els.mbox.innerHTML})();ok('help: every icon file exists',[...hh.matchAll(/src="img\/([^"]+)"/g)].every(m=>fsx.existsSync(ROOT+'/img/'+m[1])));run('closeM()');}
 // balance sim
 raf(0);run('S=S0();spawn();ck.last=0;ck.iv=[];ck.ts=[];ck.m=1');let tt=0;

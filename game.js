@@ -8,7 +8,7 @@ const SPR={mob:{0:'act1_mob',1:'act2_mob',2:'act3_mob',3:'act4_mob'},boss:{10:'b
 const GBOSS={0:['boss_0010','Кампа','Kampe']};
 let ACTS,BOSSES,WEAPONS,GODS;
 const WALLS=[50,100,250,500,2000,4500,7000,9000,10000];
-const S0=()=>({floor:1,max:1,gold:0,souls:0,w:[1,...Array(16).fill(0)],g:Array(18).fill(0),last:NOW(),chest:0,hermes:0,adT:0,tot:0,t:[0,0,0,0,0,0,0,0,0],inv:[],eq:[-1,-1,-1,-1,-1,-1],b:[[0,0],[0,0],[0,0]],day:0,dl:'',q:null,pt:0,run:1,farm:false,sc:[0,0,0,0],se:[0,0,0,0],ac:[0,0,0,0],mk:0,cheat:false,loot:[],vol:[.25,.25],vv:1,sl:[0,0,0,0],nec:0,own:[[0],[0]],skin:0,theme:0,gf:0,sf:1,lang:'',st:{},achN:{},ach:{},tut:0,pc:0});
+const S0=()=>({floor:1,max:1,gold:0,souls:0,w:[1,...Array(16).fill(0)],g:Array(18).fill(0),last:NOW(),chest:0,hermes:0,adT:0,tot:0,t:[0,0,0,0,0,0,0,0,0],inv:[],eq:[-1,-1,-1,-1,-1,-1],b:[[0,0],[0,0],[0,0]],day:0,dl:'',q:null,pt:0,run:1,farm:false,sc:[0,0,0,0],se:[0,0,0,0],ac:[0,0,0,0],mk:0,cheat:false,loot:[],vol:[.25,.25],vv:1,sl:[0,0,0,0],nec:0,own:[[0],[0]],skin:0,theme:0,gf:0,sf:1,lang:'',st:{},achN:{},ach:{},tut:0,pc:0,cyc:1,cmax:1,ncyc:0,deep:0,fc:0,fcn:0});
 let S=S0(),ysdk=null,player=null,hp=0,maxhp=0,bossT=0,inBoss=false,clicks=[],rage=0,sound=true,tab='hero',pool=[],pi=0,acc=0;
 const SUF=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc','Ud','Dd','Td','Qad','Qid','Sxd'];
 const fmt=n=>{if(!isFinite(n))return'∞';if(n<1e3)return Math.floor(n)+'';const p=Math.pow(10,Math.floor(Math.log10(n))-2);n=Math.round(n/p)*p;const e=Math.floor(Math.log10(n)/3);if(e>=SUF.length)return n.toExponential(2).replace('e+','e');const v=n/Math.pow(10,e*3);return(v<10?v.toFixed(2):v<100?v.toFixed(1):v.toFixed(0))+SUF[e]};
@@ -19,10 +19,17 @@ const boost=()=>(NOW()<S.hermes?2:1)*(rage>0?2:1)*soulM()*gearM();
 const clickD=()=>(1+WEAPONS.reduce((a,w,i)=>a+w[1]*S.w[i]*mult(S.w[i]),0))*boost()*bld(0)*T(0)*(1+.25*pt(2))*(1+.2*pt(17))*(sa(3)?3:1);
 const dps=()=>GODS.reduce((a,g,i)=>a+g[1]*S.g[i]*mult(S.g[i]),0)*boost()*bld(2)*T(2)*(1+.25*pt(9))*(1+.2*pt(17))*(sa(2)?3:1)+(sa(1)?5*clickD()*pw(1):0);
 const isBoss=f=>f%10==0;
+const MPF=f=>f<10?3:5; // монстров на этаже: на этажах 1–9 по 3 — первый босс уже на первой минуте игры (CrazyGames: «играют ≥1 мин»)
+// ---- Круги Хаоса (новая игра+): победа над Хаосом на 10 000 этаже открывает следующий Круг. Те же этажи, но монстры
+// сильнее (здоровье и золото ×CYC_HP за Круг), души за перерождение ×(1+CYC_SOUL·(Круг−1)). В новый Круг входят перерождением.
+const CYC_HP=100,CYC_SOUL=1,cyc=()=>S.cyc||1,cycM=()=>Math.pow(CYC_HP,cyc()-1),cycS=()=>1+CYC_SOUL*(cyc()-1);
+const rom=n=>{let r='';[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']].forEach(([v,c])=>{while(n>=v){r+=c;n-=v}});return r};
+const fmtX=n=>n<1e6?String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0'):fmt(n); // множитель Круга: «1 000», дальше «1.00M»
+const deep=()=>(cyc()-1)*10000; // рекорд глубины: (Круг−1)·10000 + этаж
 function mHP(f){let h=14*Math.pow(f,1.9)*Math.pow(1.045,Math.min(f,1000))*Math.exp(.0013*Math.max(0,f-1000));
- WALLS.forEach(w=>{if(f>=w)h*=3});return h*(isBoss(f)?bossM(f):1)}
+ WALLS.forEach(w=>{if(f>=w)h*=3});return h*(isBoss(f)?bossM(f):1)*cycM()}
 // начало игры: первые боссы слабее (×BOSS_M0 на 10-м этаже, к BOSS_FULL-му — обычные ×6), золото с монстров выше (×(1+EARLY_GOLD) на 1-м этаже, к EARLY_FL-му — ×1)
-const BOSS_M0=1.6,BOSS_FULL=60,EARLY_GOLD=3,EARLY_FL=40;
+const BOSS_M0=1.6,BOSS_FULL=60,EARLY_GOLD=10,EARLY_FL=40; // EARLY_GOLD 10 (было 3): первая покупка на ~5 с, первый бог на ~12 с; к 40-му этажу ×1, дальний баланс не меняется
 const bossM=f=>Math.min(6,BOSS_M0+(6-BOSS_M0)*Math.max(0,f-10)/(BOSS_FULL-10));
 const eGold=f=>1+EARLY_GOLD*Math.max(0,1-(f-1)/(EARLY_FL-1));
 // база наград (задания, вход дня, сундуки): HP обычного этажа на лучшем этаже; ×1 ≈ 10 этажей добычи (без бонуса начала, иначе задания проскакивают первые акты)
@@ -31,11 +38,11 @@ const act=f=>ACTS.find(a=>f<=a[0])||ACTS[5];
 function spawn(){const f=S.floor;if(f>S.run)S.run=f;maxhp=hp=mHP(f)*(1-.1*pt(3))*(isBoss(f)?1-.1*pt(10):1)/(isBoss(f)?1:5);inBoss=isBoss(f)&&!S.farm;bossT=inBoss?30+10*pt(7):0;if(inBoss&&sheetOn())sheet(false);
  {const a=act(f),gb=GBOSS[ACTS.indexOf(a)];$('mname').textContent=BOSSES[f]||(isBoss(f)?(gb?t(gb[1],gb[2]):t('Страж ','Guardian of ')+a[3]):t('Тень ','Shade of ')+a[3])}
  {const m=$('monster'),ai=ACTS.indexOf(act(f)),gbs=GBOSS[ai]&&GBOSS[ai][0],sp=isBoss(f)?(SPR.boss[f]||gbs||SPR.mob[ai]):SPR.mob[ai];if(sp){m.textContent='';m.style.backgroundImage='url(img/'+sp+'.webp)'}else{m.textContent=isBoss(f)?'👑':act(f)[2];m.style.backgroundImage=''}m.classList.toggle('img',!!sp);m.classList.toggle('boss',isBoss(f));m.classList.toggle('named',!!(isBoss(f)&&(SPR.boss[f]||gbs)))}
- $('floor').textContent=t('Этаж ','Floor ')+f+(isBoss(f)||S.farm?'':' · '+(S.mk+1)+'/5');$('act').textContent=act(f)[1];$('arena').dataset.act=ACTS.indexOf(act(f));actUI(f);
+ $('floor').textContent=t('Этаж ','Floor ')+f+(isBoss(f)||S.farm?'':' · '+(S.mk+1)+'/'+MPF(f));$('act').textContent=act(f)[1];$('arena').dataset.act=ACTS.indexOf(act(f));actUI(f);
  $('bRetry').hidden=!S.farm;$('bSave').hidden=!S.farm;if(inBoss)bossIn($('mname').textContent);draw();fitArena()}
-function kill(){const f=S.floor;sfx(isBoss(f)?'boss':'kill');wait=SPAWN_DELAY;killFx(isBoss(f));{const gk=mHP(f)*.1*(isBoss(f)?3:.2)*eGold(f)*bld(1)*T(1)*(1+.3*pt(1))*(NOW()<S.gf?2:1);S.gold+=gk;S.st.g=(S.st.g||0)+gk}qp('k');if(isBoss(f)){for(let k=0;k<1+pt(14);k++)drop(0,true);qp('b')}
- const clr=!S.farm&&(isBoss(f)||++S.mk>=5);if(clr){S.mk=0;if(f>S.max){S.max=f;qp('f');submitScore()}}
- if(f>=10000&&isBoss(f)){S.st.win=(S.st.win||0)+1;modal(t('<h3>Хаос повержен!</h3><p>Вы вышли из Подземелья. Перерождение откроет новый круг.</p>','<h3>Chaos is defeated!</h3><p>You have escaped the Underworld. Rebirth starts a new cycle.</p>')+'<button onclick="closeM()">'+t('Дальше','Continue')+'</button>');happy();}
+function kill(){const f=S.floor;sfx(isBoss(f)?'boss':'kill');wait=SPAWN_DELAY;killFx(isBoss(f));{const gk=mHP(f)*.1*(isBoss(f)?3:.2)*eGold(f)*bld(1)*T(1)*(1+.3*pt(1))*(NOW()<S.gf?2:1);S.gold+=gk;S.st.g=(S.st.g||0)+gk;goldFx(gk,isBoss(f))}qp('k');if(isBoss(f)){for(let k=0;k<1+pt(14);k++)drop(0,true);qp('b')}
+ const clr=!S.farm&&(isBoss(f)||++S.mk>=MPF(f));if(clr){S.mk=0;if(f>S.max)S.max=f;if(deep()+f>(S.deep|0)){S.deep=deep()+f;qp('f');submitScore()}}
+ if(f>=10000&&isBoss(f)){S.st.win=(S.st.win||0)+1;if(cyc()>=(S.cmax|0)){S.cmax=cyc()+1;S.ncyc=S.cmax;happy();cycWin()}else toast(ico('crown')+' '+t('Хаос снова повержен','Chaos defeated again'))}
  else if(clr&&f<10000)S.floor++;
  if(clr&&[500,2000,4500,7000,9000].includes(f)){happy();interstitial(()=>{})}
  else if(clr&&isBoss(f)&&(PF.kind=='cg'||PF.kind=='pk'))interstitial(()=>{}); // CrazyGames: реклама между уровнями после победы над боссом (не чаще раза в 4 мин; в Basic Launch выключена)
@@ -55,7 +62,7 @@ $('arena').addEventListener('pointerdown',e=>{
  $('monster').classList.add('hit');setTimeout(()=>$('monster').classList.remove('hit'),60);
  if(wait<=0){dealt(d,crit,e.clientX-r.left,e.clientY-r.top);burst(e.clientX-r.left,e.clientY-r.top,crit?9:5,crit?['#fff1c4','#ff6a4a','#ffd96b']:['#ffd96b','#ffb35a'],crit?70:40)}});
 for(let i=0;i<24;i++){const d=document.createElement('div');d.className='dn';$('fx').appendChild(d);pool.push(d)}
-function float(d,c,x,y){const e=pool[pi++%pool.length];e.style.display='block';e.className='dn'+(c?' c':'');e.textContent=fmt(d);
+function float(d,c,x,y){const e=pool[pi++%pool.length];e.style.display='block';e.className='dn'+(c?' c':'');e.textContent=d<10&&d%1?String(Math.round(d*10)/10):fmt(d);
  e.style.left=x+'px';e.style.top=y+'px';e.style.animation='none';void e.offsetWidth;e.style.animation=''}
 function draw(){adUI();skUI();lootUI();$('nec').textContent=fmt(S.nec);$('hp').style.width=Math.max(0,hp/maxhp*100)+'%';$('hptxt').textContent=fmt(Math.max(0,hp))+' / '+fmt(maxhp);
  $('timer').textContent=inBoss?t('Бой с боссом: ','Boss fight: ')+bossT.toFixed(1)+t(' с',' s'):S.farm?t('Босс ждёт на этаже ','Boss awaits on floor ')+(S.floor+1):'';$('timer').classList.toggle('boss',inBoss);
@@ -118,8 +125,12 @@ function tabRender(){const L=$('list');let h='';dirty=false;
  setList(L,(tab=='hero'||tab=='gods'?'':panH(tab,tab=='top'?'<div class="seg"><button class="'+(atab=='a'?'on':'')+'" onclick="setAT(\'a\')">'+t('Подвиги','Feats')+'</button><button class="'+(atab=='s'?'on':'')+'" onclick="setAT(\'s\')">'+t('Статистика','Stats')+'</button></div>':''))+h);updBtns()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>navGo(b.dataset.t));
 function prestige(){const g=soulGain();if(g<1||pcd()>0)return;
- const done=()=>{if(pcd()>0)return;const f0=startF(),k={pt:NOW(),cheat:S.cheat,max:S.max,souls:S.souls+g,tot:S.tot+g,hermes:S.hermes,chest:S.chest,ac:S.ac,loot:S.loot,vol:S.vol,lang:S.lang,st:S.st,achN:S.achN,ach:S.ach,tut:S.tut,td:S.td,tipF:S.tipF,pc:S.pc+1,sl:S.sl,nec:S.nec,own:S.own,skin:S.skin,theme:S.theme,gf:S.gf,adT:S.adT,t:S.t,inv:S.inv,eq:S.eq,b:S.b,day:S.day,dl:S.dl,q:S.q};S=Object.assign(S0(),k);S.farm=false;S.floor=f0;S.sf=f0;S.run=f0;S.gold=skipGold(f0);spawn();tabRender();save()};
+ const done=()=>{if(pcd()>0)return;const f0=startF(),k={pt:NOW(),cheat:S.cheat,max:S.max,souls:S.souls+g,tot:S.tot+g,hermes:S.hermes,chest:S.chest,ac:S.ac,loot:S.loot,vol:S.vol,lang:S.lang,st:S.st,achN:S.achN,ach:S.ach,tut:S.tut,td:S.td,tipF:S.tipF,pc:S.pc+1,sl:S.sl,nec:S.nec,own:S.own,skin:S.skin,theme:S.theme,gf:S.gf,adT:S.adT,t:S.t,inv:S.inv,eq:S.eq,b:S.b,day:S.day,dl:S.dl,q:S.q,cmax:S.cmax,deep:S.deep},nc=Math.min(S.cmax||1,Math.max(1,S.ncyc||cyc())),ch=nc!=cyc();k.cyc=nc;k.ncyc=nc;S=Object.assign(S0(),k);S.farm=false;S.floor=f0;S.sf=f0;S.run=f0;S.gold=skipGold(f0);spawn();tabRender();save();if(ch)toast(ico('crown')+' '+t('Круг ','Circle ')+rom(nc)+(nc>1?t(': монстры ×',': monsters ×')+fmtX(cycM())+t(', души ×',', souls ×')+cycS():''),true)};
  interstitial(done)}
+// окно победы над Хаосом — только при первом прохождении Круга; дальше игрок сам выбирает Круг в «Дарах»
+function cycWin(){const n=S.cmax;modal(`<h3>${ico('crown')} ${t('Хаос повержен!','Chaos is defeated!')}</h3><p>${cyc()>1?t('Круг ','Circle ')+rom(cyc())+t(' пройден. ',' completed. '):t('Вы вышли из Подземелья. ','You have escaped the Underworld. ')}${t('Открыт <b>Круг ','<b>Circle ')+rom(n)+t('</b>: те же этажи, но монстры в ',' unlocked</b>: the same floors, but monsters are ')+fmtX(CYC_HP*cycM())+t(' раз сильнее и дают больше золота, а души за перерождение ×',' times stronger and drop more gold, and rebirth souls ×')+(1+CYC_SOUL*(n-1))}.</p><p>${t('В новый Круг входят перерождением — души за этот путь вы получите.','You enter the new Circle by rebirth — you keep the souls for this run.')}</p><button onclick="cycGo(${n})">${t('Переродиться в Круг ','Rebirth into Circle ')+rom(n)}</button><button onclick="closeM()">${t('Позже','Later')}</button>`)}
+function cycGo(n){S.ncyc=Math.min(S.cmax,Math.max(1,n));closeM();navGo('pres');if(pcd()<=0&&soulGain()>=1)prestige();else save()}
+function cycSel(n){S.ncyc=Math.min(S.cmax,Math.max(1,n));tabRender();save()}
 // CrazyGames: открытое окно (настройки, справка, награды) — это пауза в игровом процессе: gameplayStop, закрыли — gameplayStart
 function modal(h){$('mbox').innerHTML=h;if(PF.kind=='cg'&&$('modal').hidden&&!paused)gp(false);$('modal').hidden=false}
 function closeM(){if(PF.kind=='cg'&&!$('modal').hidden&&!paused)gp(true);$('modal').hidden=true}
@@ -227,7 +238,7 @@ function storeGet(){let l=null,c=null;try{l=localStorage.getItem('hades')}catch(
  if(PF.kind=='vk')c=vkCloud;else if(PF.kind=='pk')try{c=PF.sdk.storage.get('hades')||null;if(c&&typeof c!='string')c=JSON.stringify(c)}catch(e){}else if(PF.kind=='cg')try{c=PF.sdk.data.getItem('hades');cgLd=c?'cloud':'empty'}catch(e){cgLd='err:'+((e&&(e.code||e.message))||'?');console.warn('[Underworld Escape] CrazyGames load error',e)}
  const lt=x=>{try{return JSON.parse(x).last||0}catch(e){return -1}};return !c?l:!l?c:lt(c)>=lt(l)?c:l}
 const snd=()=>{if(!sound)return false;try{if(PF.kind=='cg'&&PF.sdk.game.settings&&PF.sdk.game.settings.muteAudio)return false}catch(e){}return true};
-function submitScore(){if(S.cheat||!ysdk)return;if(NOW()-lbT<20000){lbP=true;return}lbT=NOW();lbP=false;try{if(ysdk.leaderboards&&ysdk.leaderboards.setScore)ysdk.leaderboards.setScore('floors',S.max).catch(()=>{});else if(ysdk.getLeaderboards)ysdk.getLeaderboards().then(l=>l.setLeaderboardScore('floors',S.max)).catch(()=>{})}catch(e){}}
+function submitScore(){if(S.cheat||!ysdk)return;if(NOW()-lbT<20000){lbP=true;return}lbT=NOW();lbP=false;try{if(ysdk.leaderboards&&ysdk.leaderboards.setScore)ysdk.leaderboards.setScore('floors',Math.max(S.max,S.deep|0)).catch(()=>{});else if(ysdk.getLeaderboards)ysdk.getLeaderboards().then(l=>l.setLeaderboardScore('floors',S.max)).catch(()=>{})}catch(e){}}
 function showLB(){if(!ysdk)return modal('<p>'+t('Лидерборд доступен в Яндекс Играх.','The leaderboard is available on Yandex Games.')+'</p>'+okB());
  ysdk.getLeaderboards().then(l=>l.getLeaderboardEntries('floors',{quantityTop:10})).then(r=>modal('<h3>'+t('Топ-10','Top 10')+'</h3>'+r.entries.map(e=>`<p>${e.rank}. ${e.player.publicName||t('Игрок','Player')} — ${e.score}</p>`).join('')+'<button onclick="closeM()">'+t('Закрыть','Close')+'</button>')).catch(()=>{})}
 let loaded=false; // до загрузки сохранения ничего не пишем — иначе сворачивание в первые секунды затёрло бы прогресс пустым
@@ -235,7 +246,7 @@ function save(f){if(!loaded)return;S.last=NOW();const j=JSON.stringify(S);storeS
 async function load(){let d=null;try{if(player){const r=await player.getData();if(r.s)d=r.s}}catch(e){}
  if(!d)d=storeGet();
  if(d)try{S=Object.assign(S0(),JSON.parse(d))}catch(e){}normS()}
-function normS(){if(S.tot<S.souls)S.tot=S.souls;if(!S.vv){if(S.vol&&S.vol[0]==.7&&S.vol[1]==.3)S.vol=[.25,.25];S.vv=1}S.g=GODS.map((_,i)=>S.g[i]|0);S.w=WEAPONS.map((_,i)=>S.w[i]|0);S.t=TN.map((_,i)=>S.t[i]|0)}
+function normS(){S.cyc=Math.max(1,S.cyc|0);S.cmax=Math.max(S.cyc,S.cmax|0,S.st&&S.st.win?2:1);if(!S.ncyc||S.ncyc>S.cmax)S.ncyc=S.cyc;S.deep=Math.max(S.deep|0,S.max|0);if(S.tot<S.souls)S.tot=S.souls;if(!S.vv){if(S.vol&&S.vol[0]==.7&&S.vol[1]==.3)S.vol=[.25,.25];S.vv=1}S.g=GODS.map((_,i)=>S.g[i]|0);S.w=WEAPONS.map((_,i)=>S.w[i]|0);S.t=TN.map((_,i)=>S.t[i]|0)}
 // первый кадр: пока подключается площадка (VK/Яндекс/CrazyGames — до 1–3 с), сразу рисуем арену по локальной копии сохранения,
 // иначе секунду-две виден пустой красный экран и эмодзи вместо моба. Потом load() берёт настоящее сохранение площадки.
 function preDraw(){try{let d=null;try{d=localStorage.getItem('hades')}catch(e){}if(d){S=Object.assign(S0(),JSON.parse(d));normS()}setTexts(S.lang||pfLang());spawn();tabRender()}catch(e){}S=S0()}
@@ -314,7 +325,8 @@ function adUI(){const n=NOW(),h=S.hermes-n,c=S.chest-n,B=$('bHermes'),C=$('bChes
 // Ограничитель кликов (без проверок «я не бот»), настройки:
 const CLICK_GAP=100,   // мин. интервал между засчитанными кликами, мс (макс. 10 кликов/с)
  CLICK_WIN=1e4,CLICK_MAX=60, // не более 60 кликов за любые 10 с (в среднем 6/с)
- METRO_CV=.06,METRO_MULT=.25, // слишком ровный ритм (разброс < 6%): урон такого клика ×0.25
+ METRO_CV=.025,METRO_MULT=.25, // слишком ровный ритм (разброс < 2,5% — так кликает только автокликер): урон ×0.25. Было 6% — задевало людей,
+                              // которые ритмично стучат по телефону (у человека 3–8%, а время касаний ещё и округляется до кадров по 16,7 мс)
  ck={last:0,iv:[],ts:[],m:1};
 function clickOK(e){ // 0 — клик не засчитан, .25 — засчитан со штрафом, 1 — полноценный
  if(!e.isTrusted||(e.pointerType=='mouse'&&e.button>0))return 0;
@@ -399,6 +411,9 @@ function buyPack(i){const p=PACKS[i];if(!ysdk||!ysdk.getPayments){modal('<p>'+t(
 const SPAWN_DELAY=.2,QN=8;let wait=0,hk=0,mxi=3,kfxT=0;
 // смена монстра: короткая вспышка, но не чаще раза в 0,3 с — при быстрых убийствах монстр просто остаётся видимым
 function killFx(boss){const n=performance.now();if(n-kfxT<300&&!boss)return;kfxT=n;const m=$('monster');m.classList.remove('pop');void m.offsetWidth;m.classList.add('pop');const c=monC();burst(c[0],c[1],boss?26:12,boss?['#ffd96b','#ff7a2a','#fff1c4']:['#ff7a2a','#3a2a2a','#ffb35a'],boss?150:90)}
+// «+N золота» над монстром и подпрыгивающий счётчик — видно, откуда берутся деньги на покупки
+let gfxT=0;function goldFx(g,boss){try{const n=performance.now();if(n-gfxT<350&&!boss)return;gfxT=n;const c=monC(),e=pool[pi++%pool.length];e.style.display='block';e.className='dn g'+(boss?' c':'');e.textContent='+'+fmt(g);
+ e.style.left=(c[0]+24)+'px';e.style.top=(c[1]-30)+'px';e.style.animation='none';void e.offsetWidth;e.style.animation='';const b=$('gold');b.classList.remove('bump');void b.offsetWidth;b.classList.add('bump')}catch(e){}}
 function heroAtk(){const h=$('hero');h.classList.add('atk');setTimeout(()=>h.classList.remove('atk'),110)}
 function lootUI(){const c=$('chest'),n=S.loot.length;c.hidden=!n;if(n&&$('chestn').textContent!==String(n))$('chestn').textContent=String(n)}
 function claimLoot(){if(!S.loot.length)return;sfx('reward');const m={};S.loot.forEach(x=>{const k=x.s+'_'+x.r;m[k]=(m[k]||0)+1});S.inv.push(...S.loot);S.loot=[];
@@ -413,6 +428,7 @@ function openHelp(){const H=[
  ['icons/skill_1',t('Умения 1–4','Skills 1–4'),t('Открываются на 10, 50, 120 и 300 этаже. Кнопки под ареной или клавиши 1–4. Прокачиваются за души: «Герой → Умения».','Unlock at floors 10, 50, 120 and 300. Use the buttons under the arena or keys 1–4. Level them up with souls: Hero → Skills.'),''],
  ['ui/q_i',t('Вещи','Items'),t('Боссы оставляют сундук с добычей — нажмите на него. Наденьте вещи во вкладке «Вещи»: чем выше редкость, тем больше бонус ко всему урону. Несколько одинаковых вещей объединяются в одну реже.','Bosses drop a loot chest — tap it. Equip items in the Items tab: the higher the rarity, the bigger the bonus to all damage. Identical items merge into a rarer one.'),'inv'],
  ['ui/gift_0',t('Перерождение и души','Rebirth and souls'),t('Во вкладке «Дары»: игра начинается заново с части пройденного пути, а вы получаете души. Души навсегда усиливают весь урон, а ещё на них покупаются вечные дары и прокачка умений.','In the Gifts tab: restart from part of your run and receive souls. Souls permanently boost all damage and buy eternal gifts and skill levels.'),'pres'],
+ ['ui/feat_trophy',t('Круги Хаоса','Circles of Chaos'),t('Победа над Хаосом на 10 000 этаже открывает следующий Круг: те же этажи, но монстры намного сильнее, а душ за перерождение больше. Круг выбирается перед перерождением во вкладке «Дары».','Defeating Chaos on floor 10,000 unlocks the next Circle: the same floors, much stronger monsters and more souls on rebirth. Pick the Circle before rebirth in the Gifts tab.'),'pres'],
  ['ui/house_0',t('Дом','House'),t('Постройки за золото дают вечные бонусы: Кузница — к клику, Сад — к золоту, Библиотека — к урону богов. Строятся по времени и не сбрасываются при перерождении.','Buildings cost gold and give permanent bonuses: Forge to clicks, Garden to gold, Library to god damage. They take time to build and are kept after rebirth.'),'house'],
  ['ui/q_daily',t('Задания и вход','Quests and login'),t('Каждый день — 8 заданий и бонус за все. Награда за вход растёт 7 дней подряд, в 7-й день — души и Нектар.','8 daily quests plus a bonus for all. The login reward grows for 7 days in a row; day 7 gives souls and Nectar.'),'quest'],
  ['ui/feat_trophy',t('Подвиги и статистика','Feats and stats'),t('Подвиги — долгие цели за Нектар. Там же вкладка «Статистика» со всеми вашими рекордами.','Feats are long-term goals that give Nectar. The Stats view shows all your records.'),'top'],
@@ -483,7 +499,9 @@ function fitArena(){try{const d=$('dock'),dh=d&&Math.round(d.getBoundingClientRe
  const top=F.getBoundingClientRect().bottom-a.top+4,k=Math.round(a.height)+'|'+Math.round(top);if(k===fitK)return;fitK=k;
  [['monster','--mmax'],['hero','--hmax']].forEach(([id,v])=>{const e=$(id),b=parseFloat(getComputedStyle(e).bottom)||0;A.style.setProperty(v,Math.max(90,Math.floor(a.height-b-top))+'px')})}catch(e){}}
 try{window.addEventListener('resize',()=>{fitK='';fitArena()})}catch(e){}
+let fcNote=0;
 function hTick(){const n=NOW();let d=false;tipUI();fitArena();if(hk%5==0){S.st.bc=Math.max(S.st.bc||0,clickD());S.st.bd=Math.max(S.st.bd||0,dps());if(tab=='top'&&atab=='s')dirty=true}if(hk%5==0)navBadges();if(hk%10==0)achCheck();if(++hk%4==0&&dps()>0)heroAtk();if($('fairy').hidden&&n>fnx&&!paused)fairySpawn();lbFlush();if(dirty&&!busy()){dirty=false;tabRender()}S.b.forEach(b=>{if(b[1]&&b[1]<=n){b[0]++;b[1]=0;d=true}});
+ if(freeOn()){const fc=(S.fc||0)-n;if(fc<=0&&!fcNote&&S.max>=3){fcNote=1;toast(ico('gift')+' '+t('Дар Харона готов — вкладка «Награды»',"Charon's Gift is ready — Rewards tab"),true)}if(fc>0)fcNote=0;if(tab=='rew'){const b=q$('[data-fc]');if(b){const tx=fc>0?`<b>${hms(fc)}</b><span>${t('до дара','until gift')}</span>`:'';if(fc<=0&&b.disabled)dirty=true;else if(fc>0&&b._h!==tx){b._h=tx;setList(b,tx)}}}}
  if(tab=='rew')document.querySelectorAll('[data-ab]').forEach(b=>{const i=+b.dataset.ab,c=S.ac[i]-n,tx=abH(c,adsOff());if(b._h!==tx){b._h=tx;setList(b,tx)}b.disabled=c>0||adsOff()});if(tab=='pres'){const r=pcd(),g=soulGain();document.querySelectorAll('[data-pc]').forEach(e=>e.textContent=r>0?t('Кулдаун перерождения: ','Rebirth cooldown: ')+cdTxt(r):'');document.querySelectorAll('[data-pb]').forEach(e=>e.disabled=r>0||g<1)}if(tab!='house')return;if(d)tabRender();else{document.querySelectorAll('[data-ft]').forEach(e=>e.textContent=t('Строится: ','Building: ')+hms(Math.max(0,+e.dataset.ft-n)));document.querySelectorAll('[data-fb]').forEach(e=>e.style.width=Math.round(Math.min(1,1-(+e.dataset.fb-n)/+e.dataset.dur)*100)+'%')}}
 // ======== ДОМ: постройки с вечными бонусами; идёт стройка — полоска и таймер ========
 const BNI=['anvil','sprout','book'];
@@ -500,12 +518,32 @@ function qn(){if(!S.q||!S.q.p||S.q.p.length!=QN||NOW()-S.q.t>864e5)S.q={t:NOW(),
 function qp(k,n=1){qn();S.q[k]+=n;S.st[k]=(S.st[k]||0)+n;if(tab=='quest'||tab=='top')dirty=true}
 function qClaim(j){qn();const q=QD[S.q.p[j]];if(S.q.d[j]||S.q[q[1]]<q[2])return;S.q.d[j]=1;sfx('reward');S.gold+=rwG()*q[3];S.nec++;if(S.q.d.every(x=>x)&&!S.q.bn){S.q.bn=1;S.nec+=5}upd()}
 function acGive(i){sfx('reward');const g=rwG(),[gm,ni,mr,so]=[[4,0,0,0],[10,1,0,0],[30,2,1,0],[100,3,2,1]][i];S.gold+=g*gm;const its=[];for(let k=0;k<ni;k++)its.push(drop(mr));let t='<i class="coin"></i>'+fmt(g*gm);if(so){const x=chestSouls();S.souls+=x;S.tot+=x;t+=' · <i class="soul"></i>'+x}return t+its.map(it=>'<br>'+itm(it.s,it.r,1)+' '+SL[it.s]+' · '+RN[it.r]+' (+'+pct(RB[it.r])+'%)').join('')}
+// ---- Дар Харона: бесплатный сундук раз в 4 ч там, где видео-награды недоступны (CrazyGames в Basic Launch, блокировщик рекламы).
+// Всегда золото + случайный приз (Нектар, вещь от редкой, Гермес, Золотая лихорадка, души); каждый 3-й дар — большой. Первый — сразу.
+// Задача — повод вернуться (Retention D1): после открытия виден таймер следующего дара и награда за завтрашний вход.
+const FC_CD=4*36e5,freeOn=()=>adsOff(),fcBig=()=>((S.fcn|0)+1)%3==0;
+function freeChest(){const n=NOW();if(!freeOn()||n<(S.fc||0))return;const big=fcBig();S.fcn=(S.fcn|0)+1;S.fc=n+FC_CD;qp('o');sfx('reward');
+ const g=rwG()*(big?40:12);S.gold+=g;const L=['<i class="coin"></i>'+fmt(g)];
+ const P=[['nec',40],['item',25],['hermes',15],['rush',10]];if(S.pc>=1)P.push(['souls',10]);
+ const roll=()=>{let x=Math.random()*P.reduce((a,b)=>a+b[1],0);for(const p of P){if((x-=p[1])<0)return p[0]}return 'nec'};
+ const give=k=>{if(k=='nec'){const v=3+Math.floor(Math.random()*3);S.nec+=v;L.push(`<span class="it nc pic sm"><img class="pi" src="img/icons/icon_nectar.webp" alt=""></span> ${t('Нектар','Nectar')} +${v}`)}
+  else if(k=='item'){const it=drop(1);L.push(itm(it.s,it.r,1)+' '+SL[it.s]+' · '+RN[it.r]+' (+'+pct(RB[it.r])+'%)')}
+  else if(k=='hermes'){S.hermes=Math.max(S.hermes,n)+9e5;L.push(ico('bolt')+' '+t('Гермес: урон ×2 на 15 минут','Hermes: damage ×2 for 15 minutes'))}
+  else if(k=='rush'){S.gf=Math.max(S.gf,n)+9e5;L.push(ico('coins')+' '+t('Золотая лихорадка: золото ×2 на 15 минут','Gold Rush: gold ×2 for 15 minutes'))}
+  else if(k=='souls'){const x=chestSouls();S.souls+=x;S.tot+=x;L.push('<i class="soul"></i> '+t('Души','Souls')+' +'+fmt(x))}};
+ give(roll());if(big){give('item');S.nec+=5;L.push(`<span class="it nc pic sm"><img class="pi" src="img/icons/icon_nectar.webp" alt=""></span> ${t('Нектар','Nectar')} +5`)}
+ const nx=dayNext();
+ modal(`<h3>${ico('gift')} ${big?t('Большой дар Харона!',"Charon's Great Gift!"):t('Дар Харона',"Charon's Gift")}</h3><div class="fcr">${L.map(x=>'<p>'+x+'</p>').join('')}</div><p class="fcn">${t('Следующий дар — через 4 часа','Next gift in 4 hours')}${fcBig()?t(' (большой!)',' (a great one!)'):''}.<br>${nx?t(`Завтра — награда за ${nx[0]}-й день входа`,`Tomorrow — day ${nx[0]} login reward`)+`: <i class="coin"></i>${fmt(nx[1])}`+(nx[2]?t(' + души и Нектар',' + souls and Nectar'):''):t('Не забудьте сегодняшнюю награду за вход — вкладка «Задания»',"Don't forget today's login reward — Quests tab")}</p>`+okB());upd()}
+// награда за следующий день входа: [номер дня, золото, есть ли души]
+function dayNext(){const td=new Date(NOW()).toDateString();if(S.dl!=td)return null;const n=S.day|0;return [n+1,rwG()*5*(n+1),n==6]} // null — сегодняшняя ещё не забрана
+function fcH(){if(!freeOn())return '';const c=(S.fc||0)-NOW(),big=fcBig();
+ return `<div class="sech"><b>${t('Бесплатно','Free')}</b><span>${t('раз в 4 часа','every 4 hours')}</span></div><div class="row up shp fcrow${c<=0?' rdy':''}">${art(big?'rew_gold':'rew_charon')}<div class="ub"><b>${big?t('Большой дар Харона',"Charon's Great Gift"):t('Дар Харона',"Charon's Gift")}</b><small>${big?t('золото ×3, 2 вещи, Нектар и случайный приз','gold ×3, 2 items, Nectar and a random prize'):t('золото и случайный приз: Нектар, вещь, Гермес, Золотая лихорадка или души','gold and a random prize: Nectar, an item, Hermes, Gold Rush or souls')}</small></div><button class="buy" data-fc ${c>0?'disabled':''} onclick="freeChest()">${c>0?`<b>${hms(c)}</b><span>${t('до дара','until gift')}</span>`:`<b>${t('Забрать','Claim')}</b><span>${t('бесплатно','free')}</span>`}</button></div>`}
 function openAc(i){if(S.ac[i]>NOW())return;rewarded(()=>{qp('o');S.ac[i]=NOW()+AC[i][2];const tx=acGive(i);modal(`<h3>${AC[i][0]}</h3><p>${tx}</p>${okB()}`);upd()})}
 // ======== НАГРАДЫ: видео-награды и сундуки (цвет по сорту), лавка Нектара, облики ========
 const abH=(c,off)=>c>0?`<b>${hms(c)}</b><span>${t('перезарядка','cooldown')}</span>`:`<b>${t('Открыть','Open')}</b><span>${off?t('недоступно','unavailable'):t('за видео','watch video')}</span>`;
 function rewH(){const n=NOW(),off=adsOff();let h='';
- if(PF.kind=='cg'&&PF.noAds&&!PF.adblock)return shopH();
- if(off)h+=`<div class="note">${adOffMsg()}. ${t('Награды можно получить за Нектар ниже.','You can still get rewards for Nectar below.')}</div>`;
+ if(PF.kind=='cg'&&PF.noAds&&!PF.adblock)return fcH()+shopH();
+ if(off)h+=`<div class="note">${adOffMsg()}. ${t('Награды можно получить за Нектар ниже.','You can still get rewards for Nectar below.')}</div>`+fcH();
  h+=`<div class="sech"><b>${t('За просмотр видео','For watching a video')}</b><span>${t('бесплатно, по таймеру','free, on a timer')}</span></div>`;
  if(PF.kind=='cg'){const hh=S.hermes-n,cc=S.chest-n;
   h+=`<div class="row up shp">${art('rew_hermesad')}<div class="ub"><b>${t('Буст Гермеса','Hermes Boost')}</b><small>${t('×2 урона на 10 минут','×2 damage for 10 minutes')}</small></div><button class="buy" ${hh>0||off?'disabled':''} onclick="hermesAd()">${hh>0?`<b>${hms(hh)}</b><span>${t('действует','active')}</span>`:`<b>${t('Смотреть','Watch')}</b><span>${t('видео','video')}</span>`}</button></div>`;
@@ -532,10 +570,10 @@ const TL=[6,6,6,10,10,16,16,20,30],TM=[1e9,1e9,1e9,1e9,25,20,15,16,15],tc=i=>TL[
 function soulG(x){return Math.floor(x/5*(1+x/400))}
 // Души из Золотого сундука и за 7-й день входа растут вместе с рекордом: доля от «полного перерождения» с рекорда
 // (души за путь от стартового этажа 30% до рекорда). Сундук — 10% (не меньше 2), 7-й день — 25% (не меньше 5).
-const soulRun=()=>Math.max(0,soulG(S.max)-soulG(Math.floor(START_FRAC*S.max)));
+const soulRun=()=>Math.max(0,soulG(S.max)-soulG(Math.floor(START_FRAC*S.max)))*cycS();
 const acD=i=>i==3?AC[3][1].replace(/ \+ (души|souls)$/,'')+' + <i class="soul"></i>'+fmt(chestSouls()):AC[i][1]; // описание сундука; у Золотого — сколько душ сейчас
 const chestSouls=()=>Math.max(2,Math.floor(soulRun()*.1)),daySouls=()=>Math.max(5,Math.floor(soulRun()*.25));
-function soulGain(){return Math.floor(Math.max(0,soulG(S.run)-soulG(S.sf))*(1+.1*pt(12))*(1+.1*(S.t[8]|0)))}
+function soulGain(){return Math.floor(Math.max(0,soulG(S.run)-soulG(S.sf))*(1+.1*pt(12))*(1+.1*(S.t[8]|0))*cycS())}
 const START_FRAC=.3;
 function startF(){let f=Math.max(1,Math.floor(START_FRAC*S.run));if(isBoss(f))f--;return Math.max(1,f)}
 function skipGold(f){let g=0;for(let i=1;i<=f;i++)g+=mHP(i)*.1*(isBoss(i)?3:1);return g*bld(1)*T(1)}
@@ -549,6 +587,7 @@ function altH(){const g=soulGain(),now=soulM(),aft=Math.pow(1+(S.tot+g)*.05,1.5)
   `<div class="alt-s"><div><small>${t('Души','Souls')}</small><b><i class="soul"></i> ${fmt(S.souls)}</b></div><div><small>${t('Урон от душ','Soul damage')}</small><b>×${fmt(now)}</b></div></div>`+
   `<div class="alt-g"><div><small>${t('За перерождение','On rebirth')}</small><b>+${fmt(g)} ${t('душ','souls')}</b></div><div class="arr">→</div><div><small>${t('Урон станет','Damage becomes')}</small><b>×${fmt(aft)}</b></div></div>`+
   `<small class="alt-n">${t(`Лучший этаж забега: ${S.run}, коэф. ×${(1+S.run/400).toFixed(2)}; следующий старт с этажа ${startF()}`,`Best floor this run: ${S.run}, bonus ×${(1+S.run/400).toFixed(2)}; next run starts at floor ${startF()}`)}</small>`+
+  (S.cmax>1?`<div class="cyc"><small>${t('Следующий Круг','Next Circle')}</small><div class="seg">${Array.from({length:S.cmax},(_,i)=>`<button class="${(S.ncyc||cyc())==i+1?'on':''}" onclick="cycSel(${i+1})">${rom(i+1)}</button>`).join('')}</div><small>${(S.ncyc||cyc())>1?t('монстры ×','monsters ×')+fmtX(Math.pow(CYC_HP,(S.ncyc||cyc())-1))+t(', души ×',', souls ×')+(1+CYC_SOUL*((S.ncyc||cyc())-1)):t('обычные монстры','normal monsters')}</small></div>`:'')+
   `<small class="alt-c" data-pc></small><button class="soulb" data-pb onclick="prestige()" ${g<1||pcd()>0?'disabled':''}>${t('Переродиться','Rebirth')}</button></div>`+
   `<div class="sech"><b>${t('Вечные дары','Eternal gifts')}</b><span>${t('остаются после перерождения','kept after rebirth')}</span></div>`}
 function talH(){return TN.map((a,i)=>{const l=S.t[i],mx=l>=TM[i],cap=TM[i]<1e9,c=tc(i);return `<div class="row up tal${mx?' mx':''}">${art('gift_'+(i+1))}<div class="ub"><div class="un"><b>${a[0]}</b><span class="lv">${t('ур.','lv.')} ${l}${cap?'/'+TM[i]:''}</span></div>`+
@@ -635,7 +674,7 @@ const FI={k:'skull',b:'crown',f:'stairs',c:'target',x:'bolt',p:'orb',m:'gem',i:'
 const fmtT=s=>{s=Math.floor(s||0);const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return d?d+t(' д ',' d ')+h+t(' ч',' h'):h?h+t(' ч ',' h ')+m+t(' мин',' min'):m?m+t(' мин',' min'):t('меньше минуты','under a minute')};
 function statH(){const v=k=>S.st[k]||0,ti=(src,lb,val)=>`<div class="stt"><span class="it art"><img class="pi" src="img/${src}.webp" alt="" loading="lazy"></span><div><small>${lb}</small><b>${val}</b></div></div>`,
  sec=(nm,items)=>`<div class="sech"><b>${nm}</b></div><div class="stg">${items.join('')}</div>`;
- return sec(t('Путь наверх','The climb'),[ti('ui/q_f',t('Лучший этаж','Best floor'),fmt(S.max)),ti('ui/feat_p',t('Перерождений','Rebirths'),fmt(S.pc||0)),ti('ui/gift_0',t('Душ за всё время','Souls in total'),fmt(S.tot)),ti('ui/gift_7',t('Время в игре','Time played'),fmtT(v('t')))])+
+ return sec(t('Путь наверх','The climb'),[ti('ui/q_f',t('Лучший этаж','Best floor'),fmt(S.max)),ti('ui/feat_p',t('Перерождений','Rebirths'),fmt(S.pc||0)),...(S.cmax>1?[ti('ui/feat_trophy',t('Круг Хаоса','Circle of Chaos'),rom(cyc())+t(' (открыто: ',' (unlocked: ')+rom(S.cmax)+')'),ti('ui/q_f',t('Рекорд глубины','Depth record'),fmtX(S.deep|0)),ti('ui/feat_x',t('Побед над Хаосом','Chaos defeated'),fmt(v('win')))]:[]),ti('ui/gift_0',t('Душ за всё время','Souls in total'),fmt(S.tot)),ti('ui/gift_7',t('Время в игре','Time played'),fmtT(v('t')))])+
   sec(t('Бой','Combat'),[ti('ui/q_c',t('Кликов','Clicks'),fmt(v('c'))),ti('ui/q_x',t('Критических ударов','Critical hits'),fmt(v('x'))),ti('ui/q_k',t('Монстров повержено','Monsters slain'),fmt(v('k'))),ti('ui/q_b',t('Боссов повержено','Bosses slain'),fmt(v('b'))),ti('ui/feat_k',t('Поражений от боссов','Boss defeats'),fmt(v('l'))),ti('ui/q_r',t('Гнев Олимпа','Olympus Wrath'),fmt(v('r'))),ti('ui/q_s',t('Умений применено','Skills used'),fmt(v('s'))),ti('weapons/w_00',t('Рекорд урона клика','Best click damage'),fmt(Math.max(v('bc'),clickD()))),ti('gods/g_00',t('Рекорд урона богов','Best gods damage'),fmt(Math.max(v('bd'),dps()))+t('/с','/s'))])+
   sec(t('Добыча и развитие','Loot and growth'),[ti('ui/rew_rush',t('Золота с монстров','Gold from monsters'),fmt(v('g'))),ti('ui/q_u',t('Улучшений куплено','Upgrades bought'),fmt(v('u'))),ti('ui/q_i',t('Вещей найдено','Items found'),fmt(v('i'))),ti('ui/q_m',t('Объединений','Merges'),fmt(v('m'))),ti('ui/q_h',t('Построек','Buildings'),fmt(v('h'))),ti('ui/q_o',t('Сундуков открыто','Chests opened'),fmt(v('o'))),ti('icons/fairy',t('Фей поймано','Fairies caught'),fmt(v('fy')))])}
 function achH(){const done=ACH.filter(a=>S.ach[a[0]]).length,nt=ACH.reduce((x,a)=>x+a[4],0),ng=ACH.reduce((x,a)=>x+(S.ach[a[0]]?a[4]:0),0);
@@ -660,6 +699,9 @@ const TIPS=[
  {id:'god',on:()=>S.gold>=30,done:()=>S.g.some(l=>l>0),ru:'Наймите бога — он бьёт сам, даже без кликов',en:'Hire a god — gods attack on their own',hl:()=>inTab('gods','[data-k="g"][data-i="0"]')},
  {id:'daily',on:()=>S.max>=3,done:()=>!!S.dl,ru:'Заберите награду за вход во вкладке «Задания»',en:'Claim your daily reward in Quests',hl:()=>inTab('quest','.dly .buy')},
  {id:'boss',on:()=>S.floor>=8&&S.max<10,done:()=>S.max>=11,ru:'Каждые 10 этажей — босс: победите его за 30 секунд',en:'Every 10 floors a boss appears: beat it within 30 seconds',hl:()=>null},
+ // золото копится без дела (например, после награды за вход ~1 000 золота) — показать, куда его потратить: вне «Героя»/«Богов» — вкладка «Герой», на ней — кнопка покупки
+ {id:'spend',on:()=>S.max<12&&!S.farm&&!inBoss&&S.gold>=Math.max(60,6*cost(WEAPONS[0][2],S.w[0])),done:()=>false,ru:'Золота хватает на покупки — жмите «+1 ур.» у оружия и богов',en:'You have gold to spend — press «+1 lv.» on weapons and gods',hl:()=>tab=='hero'||tab=='gods'?(q$('#list .row.isbest button.buy:not([disabled])')||q$('#list button.buy[data-k]:not([disabled])')):inTab('hero','[data-k="w"][data-i="0"]')},
+ {id:'gift',on:()=>freeOn()&&S.max>=4&&(S.fc||0)<=NOW()&&!S.fcn,done:()=>(S.fcn|0)>0,ru:'Бесплатный Дар Харона: золото и приз — вкладка «Награды»',en:"Free Charon's Gift: gold and a prize — Rewards tab",hl:()=>inTab('rew','[data-fc]')},
  {id:'loot',on:()=>S.loot.length>0,done:()=>S.inv.length>0||S.eq.some(r=>r>=0),ru:'Боссы оставляют добычу — откройте сундук на арене',en:'Bosses drop loot — open the chest in the arena',hl:()=>$('chest')},
  {id:'equip',on:()=>S.inv.length>0,done:()=>S.eq.some(r=>r>=0),ru:'Наденьте вещь во вкладке «Вещи» — она усиливает весь урон',en:'Equip an item in Items — it boosts all damage',hl:()=>inTab('inv','[onclick^="equip("]')},
  {id:'skill',on:()=>skLv(0)>=1&&!inBoss,done:()=>st('s')>=1,ru:'Открыто умение! Нажмите его кнопку или клавишу 1',en:'Skill unlocked! Press its button or key 1',hl:()=>$('skills').children[0]},
@@ -799,12 +841,12 @@ function navGo(x){const nv=$('nav');if(x=='more'){nv.classList.toggle('open');re
 // прогресс акта в шапке и строка над врагом: точки 5 монстров этажа и «босс через N этажей»
 const setTx=(id,v)=>{const e=$(id);if(e.textContent!==v)e.textContent=v};
 function actUI(f){const a=act(f),ai=ACTS.indexOf(a),st=ai?ACTS[ai-1][0]:0;
- setTx('actn',t('Акт ','Act ')+ROM[ai]);setTx('actf',t('этаж ','floor ')+f+t(' из ',' of ')+a[0]);$('actp').style.width=Math.min(100,(f-st)/(a[0]-st)*100)+'%';
- const P=$('pips'),boss=isBoss(f);P.hidden=boss||S.farm;if(!P.hidden&&P.children)[...P.children].forEach((e,j)=>{e.className=j<S.mk?'d':j==S.mk?'c':''});
+ setTx('actn',t('Акт ','Act ')+ROM[ai]+(cyc()>1?t(' · Круг ',' · Circle ')+rom(cyc()):''));setTx('actf',t('этаж ','floor ')+f+t(' из ',' of ')+a[0]);$('actp').style.width=Math.min(100,(f-st)/(a[0]-st)*100)+'%';
+ const P=$('pips'),boss=isBoss(f);P.hidden=boss||S.farm;if(!P.hidden&&P.children)[...P.children].forEach((e,j)=>{e.className=j<S.mk?'d':j==S.mk?'c':'';e.style.display=j<MPF(f)?'':'none'});
  const nb=10-f%10;$('nextb').textContent=boss||S.farm?'':nb==1?t('дальше — босс','boss is next'):t('босс через ','boss in ')+nb+t(' эт.',' fl.')}
 // значки на разделах: что можно забрать или улучшить прямо сейчас
 function navBadges(){qn();let q=0;try{const td=new Date(NOW()).toDateString();if(S.dl!=td)q++;S.q.p.forEach((qi,j)=>{if(!S.q.d[j]&&S.q[QD[qi][1]]>=QD[qi][2])q++})}catch(e){}
- const n=NOW(),B={quest:q,top:achReady(),inv:S.loot.length?'•':'',rew:!adsOff()&&S.ac.some(x=>x<=n)?'•':'',pres:TN.some((_,i)=>S.t[i]<TM[i]&&S.souls>=tc(i))?'•':'',hero:SK.some((a,i)=>skLv(i)>0&&S.sl[i]<SKMAX&&S.souls>=skCost(i))?'•':''};
+ const n=NOW(),B={quest:q,top:achReady(),inv:S.loot.length?'•':'',rew:(!adsOff()&&S.ac.some(x=>x<=n))||(freeOn()&&(S.fc||0)<=n)?'•':'',pres:TN.some((_,i)=>S.t[i]<TM[i]&&S.souls>=tc(i))?'•':'',hero:SK.some((a,i)=>skLv(i)>0&&S.sl[i]<SKMAX&&S.souls>=skCost(i))?'•':''};
  B.more=['pres','house','rew','top'].some(k=>B[k])?'•':'';
  try{document.querySelectorAll('nav button').forEach(b=>{const e=b.querySelector('.bd');if(!e)return;const v=B[b.dataset.t]||'',tx=v==='•'?'':v?String(v):'';if(e.textContent!==tx)e.textContent=tx;e.classList.toggle('dot',v==='•')})}catch(e){}}
 setTexts('ru');
